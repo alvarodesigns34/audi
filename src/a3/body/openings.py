@@ -44,13 +44,21 @@ C_PILLAR = [(-2403, 1012), (-2438, 1012), (-2328, 1316), (-2293, 1316)]
 
 # Door shut lines (side view polylines)
 FRONT_DOOR_FRONT = [(-478, 928), (-470, 700), (-463, 450), (-457, 298)]
-DOOR_BOTTOM = [(-448, 300), (-1000, 305), (-1500, 304), (-1900, 303), (-2062, 302)]
+# door bottom = top edge of the S line side skirt, from arch to arch
+DOOR_BOTTOM = [(-330, 300), (-448, 300), (-1000, 305), (-1500, 304), (-1900, 303),
+               (-2062, 302), (-2310, 300)]
+# fender / A-pillar foot: from the front door gap up to the hood rear corner
+FENDER_REAR = [(-482, 922), (-452, 938), (-412, 954), (-385, 966)]
 B_GAP = [(-1586, 966), (-1565, 600), (-1544, 298)]
 REAR_DOOR_REAR = [(-2440, 1012), (-2468, 945), (-2478, 890), (-2431, 807),
                   (-2384, 682), (-2275, 559), (-2178, 444), (-2100, 355),
                   (-2068, 318), (-2050, 300)]
-FRONT_BUMPER_SPLIT = [(540, 628), (470, 574), (410, 520), (350, 470)]
-REAR_BUMPER_SPLIT = [(-3260, 830), (-3150, 735), (-3060, 640), (-2995, 540), (-2975, 470)]
+FRONT_BUMPER_SPLIT = [(565, 642), (540, 628), (470, 574), (410, 520), (350, 470),
+                      (300, 440)]
+# rear bumper / quarter panel seam: from the tail lamp's lower outer corner
+# down and forwards into the arch (yellow_rear.jpg)
+REAR_BUMPER_SPLIT = [(-3015, 812), (-3005, 790), (-2985, 700), (-2960, 600),
+                     (-2945, 520), (-2925, 420)]
 
 # Fuel filler flap: right-hand side (-Y), rounded rectangle (x, z centre)
 FUEL_DOOR = dict(cx=-2660, cz=900, w=180, h=112, r=26)
@@ -65,8 +73,17 @@ HOOD_FRONT = [(0, 727), (300, 725), (392, 716), (445, 702), (600, 717), (750, 73
               (850, 743)]
 
 # Tailgate outline (rear view, y/z), one side, from top to centre bottom
-TAILGATE = [(552, 1300), (595, 1160), (640, 1065), (660, 975), (640, 890),
-            (598, 800), (560, 728), (505, 672), (380, 674), (0, 678)]
+# v0.2: follows the wider rear glass (25 mm outboard of it), through the tail
+# lamp split (y 0.68 z 0.917 / y 0.64 z 0.783) to the lower corner (y 0.556,
+# z 0.659) and the bottom edge (sline_rear ray casts)
+TAILGATE = [(585, 1318), (620, 1292), (652, 1232), (682, 1150), (705, 1080),
+            (716, 1040), (705, 980), (684, 917), (662, 850), (641, 783),
+            (602, 712), (556, 659), (450, 654), (0, 652)]
+# roof / tailgate gap (top view x, y): across the roof just ahead of the spoiler
+TAILGATE_TOP = [(-3110, 0), (-3111, 300), (-3114, 500), (-3118, 600)]
+# hood rear edge (top view): ~45 mm ahead of the windscreen base; the strip
+# between them is the black cowl panel
+HOOD_REAR = [(-306, 0), (-322, 300), (-370, 600), (-400, 775)]
 
 # Windscreen (top view x/y outline, one side, base -> pillar -> header)
 WINDSCREEN = [(-350, 0), (-365, 300), (-400, 600), (-440, 760), (-1195, 520),
@@ -203,6 +220,7 @@ def gap_cutters(col, material=None):
     obs = []
     for nm, line in (("FD_Front", FRONT_DOOR_FRONT), ("Door_Bottom", DOOR_BOTTOM),
                      ("B_Gap", B_GAP), ("RD_Rear", REAR_DOOR_REAR),
+                     ("Fender_Rear", FENDER_REAR),
                      ("FB_Split", FRONT_BUMPER_SPLIT), ("RB_Split", REAR_BUMPER_SPLIT)):
         obs += side_prism("Gap_" + nm, thick_polyline(catmull_rom(line, 6), g), 0.62, 1.2,
                           col, material=material)
@@ -227,10 +245,27 @@ def gap_cutters(col, material=None):
     obs.append(rear_prism("Gap_HoodFront", thick_polyline(catmull_rom(full, 6), g),
                           0.60, 1.00, col, material=material))
     # tailgate (rear view)
+    # top-view gaps across the roof (tailgate top) and the hood rear edge
+    for nm, half in (("Gap_TailgateTop", TAILGATE_TOP), ("Gap_HoodRear", HOOD_REAR)):
+        h = np.asarray(half, float)
+        full = np.vstack([h[::-1] * [1, -1], h[1:]])
+        obs.append(top_prism(nm, thick_polyline(catmull_rom(full, 6), g), 0.70, 1.60, col,
+                             material=material))
+    return obs
+
+
+def gap_cutters_local(surf, col, material=None):
+    """Gaps whose straight prisms would also hit other surfaces: the outline
+    is projected onto the skin and extruded only locally."""
+    g = GAP
+    obs = []
     tg = np.asarray(TAILGATE, float)
     full = np.vstack([tg, (tg[::-1] * [-1, 1])[1:]])
-    obs.append(rear_prism("Gap_Tailgate", thick_polyline(catmull_rom(full, 6), g),
-                          -3.60, -3.05, col, material=material))
+    loop = thick_polyline(catmull_rom(full, 6), g) * 1e-3
+    P, N = surf.project(loop, "YZ", side=-1)
+    P = np.array([p for p in P if p is not None])
+    obs.append(local_prism("Gap_Tailgate", P, np.array([-1.0, 0, 0]), 0.03, 0.03, col,
+                           material))
     return obs
 
 

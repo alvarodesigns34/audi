@@ -21,10 +21,13 @@ def root():
 
 
 def collection(path: str):
-    """Get/create nested collection "Exterior/Body"."""
+    """Get/create nested collection "Exterior/Body".  Collections are named by
+    their full path ("Exterior/Front", "Interior/Seats/Front") so equal leaf
+    names in different branches stay separate."""
     parent = root()
-    for part in path.split("/"):
-        name = part
+    parts = path.split("/")
+    for i, part in enumerate(parts):
+        name = "/".join(parts[:i + 1])
         col = bpy.data.collections.get(name)
         if col is None:
             col = bpy.data.collections.new(name)

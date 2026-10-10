@@ -31,6 +31,7 @@ def main():
     ap.add_argument("--tag", default="")
     ap.add_argument("--strict", action="store_true")
     ap.add_argument("--clay", action="store_true", help="grey clay paint for shape review")
+    ap.add_argument("--explode", type=float, default=0.0, help="exploded view factor for renders")
     a = ap.parse_args()
     parts = [p for p in a.parts.split(",") if p] or None
     ctx = build.build(parts, paint=a.paint, strict=a.strict)
@@ -47,6 +48,12 @@ def main():
         from a3 import export
         export.glb(os.path.abspath(a.glb), draco=not a.no_draco)
     if a.views:
+        if a.explode:
+            from mathutils import Vector
+            for ob in bpy.data.objects:
+                if ob.name.startswith("G_") and "explode" in ob:
+                    gx, gy, gz = ob["explode"]
+                    ob.location = Vector((gx, -gz, gy)) * a.explode
         render.studio()
         w, h = (int(v) for v in a.res.split("x"))
         for v in a.views.split(","):

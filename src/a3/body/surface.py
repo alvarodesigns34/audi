@@ -261,4 +261,6 @@ def skin_grid(bl: BodyLines | None = None, spacing=0.012):
     front = EndCap(bl, xf, front=True).rings(L.FRONT_CAP["rings"])[::-1]
     rear = EndCap(bl, xr, front=False).rings(L.REAR_CAP["rings"])
     grid = np.concatenate([front, mid[1:-1], rear], 0)
+    from . import features
+    grid = features.apply(grid)
     return grid, xs

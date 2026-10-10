@@ -22,7 +22,7 @@ def glb(path, include_studio=False, draco=False):
         export_draco_position_quantization=14,
         export_draco_normal_quantization=10,
         export_materials="EXPORT",
-        export_extras=False,
+        export_extras=True,
         export_cameras=False,
         export_lights=False,
     )

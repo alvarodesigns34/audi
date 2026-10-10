@@ -56,7 +56,9 @@ FRONT_CAP = dict(
     centre_z=455,          # nose point height (bumper/plate centre)
     rings=90,
     # plan rounding exponents vs height z (mm): g(u) = (1-u^m)^(1/n)
-    plan_m=[(150, 2.6), (300, 3.0), (500, 3.2), (700, 2.8), (800, 2.4)],
+    # v0.2: squarer lower bumper (intakes sit on a flat face with a tight
+    # corner), rounder at headlight height where the lamp wraps round
+    plan_m=[(150, 3.0), (280, 4.2), (450, 4.4), (560, 3.6), (680, 2.8), (800, 2.4)],
     plan_n=[(150, 1.5), (500, 1.4), (800, 1.5)],
 )
 REAR_CAP = dict(
@@ -115,16 +117,17 @@ K4_Z = [(869, 455), (860, 470), (820, 495), (700, 510), (300, 520),
 # across the nose as the hood leading edge, and across the tailgate as the
 # lamp-level crease.
 # v0.2: across the nose it is the hood leading edge, which sits over the
-# grille, dips to the headlight inner tip and then follows the headlight top
-# edge out to its upper rear corner (x 0.45, y 0.85, z 0.74); along the side
+# grille and the headlights (kept smooth: the headlight cut-out provides the
+# dip to its inner tip) out to the lamp's upper rear corner (x 0.45, y 0.85,
+# z 0.74); along the side
 # it is measured on the side photo (z 0.736 at x 0.38, 0.79 at 0, 0.846 at
 # -0.475) and on the rear door (kink of the door shut line, z 0.89).
 K5_W = merged([(800, 0), (798, 200), (796, 390), (792, 445), (765, 550), (700, 650),
                (620, 740), (540, 805), (450, 852)],
               [(300, 857), (100, 862), (-300, 868), (-1200, 872), (-2300, 880), (-2750, 884)],
               plan_end(-3416, 884, 600, m=2.6, n=1.5, rear=True))
-K5_Z = [(800, 744), (798, 735), (796, 722), (792, 702), (765, 708), (700, 719),
-        (620, 729), (540, 736), (450, 741), (300, 756), (100, 782), (-42, 792),
+K5_Z = [(800, 744), (798, 740), (796, 734), (792, 729), (765, 727), (700, 728),
+        (620, 732), (540, 737), (450, 741), (300, 756), (100, 782), (-42, 792),
         (-300, 826), (-475, 846), (-1200, 876), (-2300, 893), (-2900, 904),
         (-3200, 910), (-3350, 903), (-3416, 880)]
 
@@ -176,8 +179,12 @@ BULGE = {
     "K1K2": [(869, 0.12), (300, 0.10), (-200, 0.0), (-2400, 0.0), (-2900, 0.10), (-3441, 0.12)],
     "K2K3": [(869, 0.10), (-3441, 0.10)],
     "K3K4": [(869, 0.06), (0, 0.04), (-3441, 0.06)],
-    "K4K5": [(869, 0.03), (700, 0.03), (300, 0.0), (-3200, 0.0), (-3441, 0.03)],
-    "K5K6": [(869, 0.06), (0, 0.10), (-3441, 0.10)],
+    # v0.2: slight concavity under the tornado line and a much flatter shoulder
+    # above it, so the crease keeps its real ~25-30 deg break (with 0.10 the
+    # bulge rotated the shoulder tangent by ~22 deg and the line disappeared)
+    "K4K5": [(869, 0.03), (700, 0.03), (300, -0.012), (-2700, -0.012), (-3200, 0.0),
+             (-3441, 0.03)],
+    "K5K6": [(869, 0.06), (300, 0.045), (0, 0.04), (-2900, 0.04), (-3441, 0.10)],
     "K6K7": [(869, 0.0), (-450, 0.02), (-3441, 0.02)],
     "K7K8": [(869, 0.0), (-3441, 0.0)],
 }

@@ -25,6 +25,7 @@ PARTS = [
     ("wheels", "a3.wheels.assembly"),
     ("underbody", "a3.exterior.underbody"),
     ("interior", "a3.interior.assembly"),
+    ("assembly", "a3.groups"),          # panels, exploded-view groups, labels
 ]
 
 
