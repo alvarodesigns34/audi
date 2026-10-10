@@ -47,6 +47,7 @@ def studio(floor=True, world_strength=0.35, floor_color=(0.55, 0.55, 0.56)):
         ob = bpy.data.objects.new(name, L)
         ob.location = loc
         ob.rotation_euler = rot
+        ob.visible_camera = False      # seen through the windscreen otherwise
         col.objects.link(ob)
         return ob
 
@@ -155,6 +156,7 @@ def cabin_fill(strength=1.0):
         L.energy = energy * strength
         ob = bpy.data.objects.new(name, L)
         ob.location = loc
+        ob.visible_camera = False      # light only, never seen as a white panel
         col.objects.link(ob)
         out.append(ob)
     return out

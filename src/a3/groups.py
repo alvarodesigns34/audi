@@ -334,10 +334,6 @@ def build(ctx):
     from .body import panels
     from .core import uv
     uv.apply_all()
-    # leftovers of construction
-    for ob in list(bpy.data.objects):
-        if re.match(r"^tmp", ob.name):
-            scene.delete(ob)
     shell = bpy.data.objects.get("Body_Shell")
     if shell is not None:
         out = panels.split(shell, materials={"cowl": ctx.mat("black_textured")})

@@ -35,7 +35,7 @@ def _unit(ctx, ref, surf, mirror):
     lens_m = ctx.mat("lens_clear")
     house = ctx.mat("lamp_housing")
     refl = ctx.mat("reflector")
-    bezel = ctx.mat("titanium_grey")
+    bezel = ctx.mat("reflector")       # inner bezel: vacuum-metallised (chrome look)
     led = ctx.mat("led_white")
     amber = ctx.mat("led_amber")
     d = op.headlight_dir(mirror)

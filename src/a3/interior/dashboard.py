@@ -275,7 +275,7 @@ def _hazard_strip(ctx, L, shape):
                 2, col, ctx.mat("black_satin"))
     tri = g.prism("Dash_Hazard_Triangle", [(-0.006, -0.004), (0.006, -0.004), (0.0, 0.0065)],
                   0, 0.0006, col, ctx.mat("badge_red"))
-    tri_in = g.prism("tmp_tri", [(-0.0035, -0.0025), (0.0035, -0.0025), (0.0, 0.0036)], 0,
+    tri_in = g.prism("Dash_Hazard_Triangle_Inner", [(-0.0035, -0.0025), (0.0035, -0.0025), (0.0, 0.0036)], 0,
                      0.0007, col, ctx.mat("black_satin"))
     for o in (tri, tri_in):
         # local XY -> facing -X (cabin) at the button face

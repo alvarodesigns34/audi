@@ -86,7 +86,7 @@ def _mf_pad(ctx, side, objs):
                  ctx.mat("chrome"))
     # hollow the frame: inner plate covers the centre
     objs.append(fr)
-    inner = g.prism("tmp", g.rrect(0.055, 0.041, 0.007, 5, (cx, 0.004)), 0.0118, 0.0131, COL,
+    inner = g.prism(f"Steering_MF_Inner_{'R' if side > 0 else 'L'}", g.rrect(0.055, 0.041, 0.007, 5, (cx, 0.004)), 0.0118, 0.0131, COL,
                     ctx.mat("piano_black"))
     objs.append(inner)
     btns = g.Batch(f"Steering_MF_Buttons_{'R' if side > 0 else 'L'}", COL, ctx.mat("black_satin"))

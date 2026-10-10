@@ -92,8 +92,8 @@ WINDSCREEN = [(-350, 0), (-365, 300), (-400, 600), (-440, 760), (-1195, 520),
 # bottom centre, projected along x (the glass is steep at its corners, so a
 # top-view outline does not work).  Bottom corners at |y| 0.69, z 1.045
 # (sline_rear/yellow_rear); the top edge hides under the roof spoiler.
-REAR_WINDOW_YZ = [(0, 1305), (300, 1302), (520, 1295), (590, 1280), (625, 1230),
-                  (655, 1150), (678, 1080), (690, 1046), (660, 1036), (400, 1031),
+REAR_WINDOW_YZ = [(0, 1305), (300, 1302), (500, 1294), (560, 1280), (598, 1240),
+                  (635, 1160), (668, 1085), (684, 1048), (655, 1036), (400, 1031),
                   (0, 1029)]
 REAR_WINDOW_X = (-3.60, -3.13)   # prism range along x (m)
 
@@ -254,18 +254,47 @@ def gap_cutters(col, material=None):
     return obs
 
 
+def ribbon_cutter(name, P, N, width, depth, col, material=None, closed=True):
+    """Closed solid of constant width *measured on the surface* around a 3D
+    curve P (with skin normals N): a rectangular tube, width across the curve
+    in the tangent plane, depth along the normal (half outside, half inside).
+    Unlike a prism along a fixed axis it does not widen where the skin is
+    oblique to the projection direction."""
+    from ..core.curves import resample
+    P = np.asarray(P, float)
+    N = np.asarray(N, float)
+    n = len(P)
+    rows = []
+    for i in range(n):
+        if closed:
+            t = P[(i + 1) % n] - P[i - 1]
+        else:
+            t = P[min(i + 1, n - 1)] - P[max(i - 1, 0)]
+        t /= np.linalg.norm(t) + 1e-12
+        nn = N[i] - np.dot(N[i], t) * t
+        nn /= np.linalg.norm(nn) + 1e-12
+        b = np.cross(nn, t)
+        w, d = width / 2, depth / 2
+        rows.append([P[i] - b * w - nn * d, P[i] + b * w - nn * d, P[i] + b * w + nn * d,
+                     P[i] - b * w + nn * d])
+    grid = np.array(rows)
+    ob = mesh.grid_object(name, grid, closed_u=closed, closed_v=True, collection=col,
+                          material=material, smooth=False, cap_u=not closed)
+    mesh.recalc_normals(ob)
+    return ob
+
+
 def gap_cutters_local(surf, col, material=None):
-    """Gaps whose straight prisms would also hit other surfaces: the outline
-    is projected onto the skin and extruded only locally."""
-    g = GAP
+    """Gaps whose straight prisms would also hit other surfaces or widen on
+    oblique skin: projected onto the skin and cut with a surface ribbon."""
+    from ..core.curves import catmull_rom, resample
+    from .surftools import clean_projection
     obs = []
     tg = np.asarray(TAILGATE, float)
-    full = np.vstack([tg, (tg[::-1] * [-1, 1])[1:]])
-    loop = thick_polyline(catmull_rom(full, 6), g) * 1e-3
-    P, N = surf.project(loop, "YZ", side=-1)
-    P = np.array([p for p in P if p is not None])
-    obs.append(local_prism("Gap_Tailgate", P, np.array([-1.0, 0, 0]), 0.03, 0.03, col,
-                           material))
+    full = np.vstack([tg, (tg[::-1] * [-1, 1])[1:-1]]) * 1e-3
+    loop = resample(catmull_rom(full, 8, closed=True), 700, closed=True)
+    P, N = clean_projection(*surf.project(loop, "YZ", side=-1))
+    obs.append(ribbon_cutter("Gap_Tailgate", P, N, GAP * 1e-3, 0.03, col, material))
     return obs
 
 

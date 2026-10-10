@@ -87,8 +87,8 @@ def _diffuser(ctx, surf):
         p, n = _rear_x(surf, y, 0.30)
         if p is None:
             continue
-        mesh.extrude_polygon(f"Diffuser_Fin_{y:+.2f}", [(p[0] + 0.025, 0.240), (p[0] - 0.004, 0.240),
-                                                     (p[0] - 0.004, 0.37), (p[0] + 0.025, 0.37)],
+        mesh.extrude_polygon(f"Diffuser_Fin_{y:+.2f}", [(p[0] + 0.025, 0.242), (p[0] + 0.012, 0.242),
+                                                     (p[0] + 0.012, 0.33), (p[0] + 0.025, 0.36)],
                              0.006, plane="XZ", offset=y - 0.003, collection=COL, material=grey)
     # twin round tail pipes (left), chrome, 76 mm, slightly protruding
     for (yy, zz) in op.EXHAUST_TIPS:
@@ -138,28 +138,46 @@ def _plate_rings(ctx, surf):
 
 
 def _spoiler(ctx, ref, surf):
-    """S line roof spoiler: extends the roof ~120 mm over the rear window."""
+    """S line roof spoiler (part of the tailgate): continues the roof ~150 mm
+    over the rear glass with a thin trailing edge (~10 mm); its ends turn down
+    over the upper corners of the glass.  Underside black.  Chord, droop and
+    thickness estimated from sline_rear.jpg / yellow_rear.jpg (E)."""
     paint = ctx.mat("paint")
     black = ctx.mat("black_gloss")
-    ys = np.linspace(-0.585, 0.585, 61)
-    secs = []
+    HALF = 0.585
+    ys = np.linspace(-HALF, HALF, 71)
+    secs, te = [], []
     for y in ys:
-        P, N = surf.project([(-3.10, y)], "XY", side=1)
-        base = P[0] if P[0] is not None else np.array([-3.10, y, 1.34])
-        taper = 1.0 - (abs(y) / 0.585) ** 6
-        x_te = -3.10 - 0.165 - 0.015 * taper
-        z_te = base[2] - 0.050
-        top = [(base[0], y, base[2] + 0.001), (-3.19, y, base[2] - 0.010), (x_te, y, z_te)]
-        bot = [(x_te + 0.004, y, z_te - 0.007), (-3.19, y, base[2] - 0.040),
-               (base[0] - 0.015, y, base[2] - 0.022)]
-        sec = catmull_rom(np.array(top), 6)[:-1].tolist() + catmull_rom(np.array(bot), 6).tolist()
+        u = abs(y) / HALF
+        x0 = -3.118                                   # just behind the roof gap
+        P, N = surf.project([(x0, y)], "XY", side=1)
+        base = P[0] if P[0] is not None else np.array([x0, y, 1.33])
+        chord = 0.150 - 0.045 * u ** 3
+        droop = 0.030 + 0.075 * max(0.0, (u - 0.72) / 0.28) ** 1.6   # ends turn down
+        x_te = x0 - chord
+        z_te = base[2] - droop
+        t_te = 0.005
+        top = [(x0, base[2] + 0.0008), (x0 - chord * 0.45, base[2] - droop * 0.25 + 0.002),
+               (x_te + 0.01, z_te + t_te), (x_te, z_te)]
+        bot = [(x_te + 0.004, z_te - t_te), (x0 - chord * 0.5, base[2] - droop * 0.5 - 0.028),
+               (x0 + 0.004, base[2] - 0.030)]
+        top = catmull_rom(np.array(top), 6)[:-1]
+        bot = catmull_rom(np.array(bot), 6)
+        sec = [(a, y, b) for a, b in top] + [(a, y, b) for a, b in bot]
         secs.append(sec)
+        te.append((x_te + 0.012, y, z_te - 0.009))
     g = np.array(secs)
     sp = mesh.grid_object("Roof_Spoiler", g, closed_v=True, cap_u=True, collection=COL,
                           material=paint)
-    # third brake light strip under the trailing edge
-    path = np.array([(-3.255, y, s[11][2] - 0.012) for y, s in zip(ys[15:46], secs[15:46])])
-    mesh.tube_along("Brake_Light_High", path, 0.004, sides=8, collection=LCOL,
+    # underside (faces looking down) in gloss black, as on the car
+    bi = mesh.material_index(sp, black)
+    for p in sp.data.polygons:
+        if p.normal.z < -0.35:
+            p.material_index = bi
+    mesh.shade_smooth(sp, 40)
+    # third brake light: LED strip under the trailing edge (centre 40 %)
+    k0, k1 = 21, 50
+    mesh.tube_along("Brake_Light_High", np.array(te[k0:k1]), 0.0035, sides=8, collection=LCOL,
                     material=ctx.mat("led_red"))
 
 
