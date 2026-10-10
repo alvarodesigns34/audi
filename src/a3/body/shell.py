@@ -95,14 +95,16 @@ def build(ctx):
     from .surftools import Surface
     surf = Surface(ref)
     cutters += openings.front_cutters(surf, cut_col, material=dark)
+    cutters += openings.rear_cutters(surf, cut_col, material=dark)
     # cut the closed thin shell one cutter at a time (bounded memory); the
     # FAST solver is reliable here because the shell stays a closed manifold
     # and no cutter face is coplanar with the skin.
     for c in list(cut_col.objects):
         n0 = len(skin.data.polygons)
+        cname = c.name
         mesh.boolean(skin, c, solver=BOOL_SOLVER, transfer_materials=True)
         if DEBUG:
-            print("   cut", c.name if False else "", n0, "->", len(skin.data.polygons))
+            print("   cut", cname, n0, "->", len(skin.data.polygons))
     bpy.data.collections.remove(cut_col)
 
     print(f"[body] cut {len(cutters)} openings/gaps in {time.time() - t:.1f}s")

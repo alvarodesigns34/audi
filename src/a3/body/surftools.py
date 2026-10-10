@@ -129,7 +129,7 @@ class Surface:
         dg = bpy.context.evaluated_depsgraph_get()
         self.bvh = BVHTree.FromObject(ref, dg)
 
-    def project(self, pts2d_m, plane, side=1, far=3.0):
+    def project(self, pts2d_m, plane, side=1, far=6.0):
         """Project 2D points along the plane's axis onto the skin.
 
         side=+1 casts from +axis towards -axis (e.g. left side for XZ)."""
@@ -200,3 +200,31 @@ def strip(name, pts, normals, profile, collection, material, closed=False, smoot
     return mesh.grid_object(name, grid, closed_u=closed, closed_v=True,
                             collection=collection, material=material, smooth=smooth,
                             cap_u=not closed)
+
+
+def patch_with_cutter(ref, cutter, name, collection, material, margin=0.03):
+    """Exact skin patch inside an arbitrary closed cutter object."""
+    v = np.array([c.co[:] for c in cutter.data.vertices])
+    crop = _crop_copy(ref, v.min(0) - margin, v.max(0) + margin, name)
+    marker = bpy.data.materials.get("_cutter_marker") or bpy.data.materials.new("_cutter_marker")
+    cutter.data.materials.clear()
+    cutter.data.materials.append(marker)
+    mesh.boolean(crop, cutter, operation="INTERSECT", hole_tolerant=True,
+                 transfer_materials=True)
+    names = [m.name if m else "" for m in crop.data.materials]
+    if marker.name in names:
+        mi = names.index(marker.name)
+        bm = bmesh.new()
+        bm.from_mesh(crop.data)
+        bmesh.ops.delete(bm, geom=[f for f in bm.faces if f.material_index == mi],
+                         context="FACES")
+        bm.to_mesh(crop.data)
+        bm.free()
+    for c in list(crop.users_collection):
+        c.objects.unlink(crop)
+    scene.link(crop, collection)
+    crop.data.materials.clear()
+    crop.data.materials.append(material)
+    for f in crop.data.polygons:
+        f.material_index = 0
+    return crop

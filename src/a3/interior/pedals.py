@@ -44,7 +44,7 @@ def build(ctx):
     # brake: wide pad (two-pedal S tronic layout), arm up to the pivot under the dash
     yb = 0.360                                    # E brake pad centre
     pb = np.array([-0.770, yb, 0.405])
-    _pad(ctx, "Pedal_Brake", pb, n, x_axis, 0.105, 0.070)
+    _pad(ctx, "Pedal_Brake", pb, n, x_axis, 0.130, 0.066, studs=(6, 3))   # E wide two-pedal brake
     arm = [pb + np.array([0.012, 0, 0]), pb + np.array([0.06, 0, 0.10]), np.array([-0.64, yb, 0.62])]
     g.tube("Pedal_Brake_Arm", g.spline(arm, 12), 0.009, 10, COL, steel)
     # accelerator: hanging (organ-like shape but top hinged in the 8V), long narrow pad
@@ -55,9 +55,10 @@ def build(ctx):
     g.tube("Pedal_Accelerator_Arm", g.spline(arm, 12), 0.006, 10, COL, steel)
     g.rbox("Pedal_Accelerator_Module", (0.05, 0.06, 0.08), (-0.635, ya, 0.60), 0.008, 2, COL,
            ctx.mat("hard_plastic"))
-    # footrest on the left, on the toe board / wheel arch
-    yf = 0.565
-    xf = -0.72
-    pf = np.array([xf, yf, floor_z(L, xf, yf) + 0.12])
-    _pad(ctx, "Pedal_Footrest", pf, np.array([-math.cos(math.radians(40)), -0.10, math.sin(math.radians(40))]),
-         x_axis, 0.080, 0.240, studs=(2, 9))
+    # footrest: flat plate lying on the toe board left of the brake (not a pedal:
+    # no arm, 10 mm proud of the carpet, same slope as the toe board)
+    yf, xf = 0.585, -0.690
+    slope = 1.15                                   # toe-board slope used by trim.floor_z
+    nf = g._n((-slope, 0.0, 1.0))
+    pf = np.array([xf, yf, floor_z(L, xf, yf) + 0.006])
+    _pad(ctx, "Pedal_Footrest", pf, nf, x_axis, 0.085, 0.230, studs=(2, 8))

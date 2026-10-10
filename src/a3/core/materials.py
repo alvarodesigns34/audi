@@ -124,7 +124,7 @@ def get(key: str, paint="ibis_white"):
         "led_amber": lambda: principled("LED_Amber", "#C46800", emission="#FF8C00", emission_strength=0.0, roughness=0.3),
         # ---- wheels ----
         "wheel_black": lambda: principled("Wheel_Black_Gloss", "#0B0B0C", metallic=0.2, roughness=0.18, coat=1.0, coat_rough=0.04),
-        "wheel_diamond_cut": lambda: principled("Wheel_Diamond_Cut", "#D4D6D8", metallic=1.0, roughness=0.24, aniso=0.85, coat=1.0, coat_rough=0.03, aniso_axis="Y"),
+        "wheel_diamond_cut": lambda: principled("Wheel_Diamond_Cut", "#D4D6D8", metallic=1.0, roughness=0.30, aniso=0.85, coat=1.0, coat_rough=0.03, aniso_axis="Y"),
         "wheel_cap": lambda: principled("Wheel_Cap_Grey", "#2A2C2F", metallic=0.6, roughness=0.25, coat=1.0, coat_rough=0.03),
         "wheel_bolt": lambda: principled("Wheel_Bolt_Zinc", "#8E9093", metallic=1.0, roughness=0.32),
         "brake_pad": lambda: principled("Brake_Pad_Lining", "#2E2B29", roughness=0.9, normal_noise=0.3, noise_scale=800),

@@ -30,7 +30,7 @@ def floor_z(L, x, y):
     # toe board: 45 deg ramp from the heel area up to the bulkhead (E)
     z = np.maximum(z, fz + (x - (L.toe_board_x - 0.17)) * 1.15)
     # sides rise into the sill trims
-    z += 0.10 * smoothstep(0.60, 0.70, ay)
+    z += 0.10 * smoothstep(0.62, 0.74, ay)
     # under the rear bench: raised floor (fuel tank)
     z = np.maximum(z, fz + 0.12 * smoothstep(-2.38, -2.46, x))
     return z
@@ -38,7 +38,7 @@ def floor_z(L, x, y):
 
 def _carpet(ctx, L):
     xs = np.concatenate([np.linspace(-0.45, -0.75, 12), np.linspace(-0.76, -2.55, 72)])
-    ys = np.linspace(-0.72, 0.72, 97)
+    ys = np.linspace(-0.76, 0.76, 101)
     pts = np.zeros((len(xs), len(ys), 3))
     for i, x in enumerate(xs):
         for j, y in enumerate(ys):
@@ -107,38 +107,40 @@ def _mats(ctx, L):
 
 
 def _headliner(ctx, L):
-    """Domed headliner from the windscreen header to the tailgate, edges
-    rolling down into the side rails."""
-    xs = np.linspace(L.ws_top[0] + 0.02, L.d_pillar_x[1] - 0.02, 70)
+    """Domed headliner from the windscreen header to the tailgate: roof skin
+    moved down by ``L.liner_drop``, edges rolling down into the side rails just
+    inside the side glass tops."""
+    P = layout.probe(ctx)
+    x0, x1 = L.ws_top[0] + 0.012, L.tailgate_x + 0.02
+    xs = np.linspace(x0, x1, 72)
     ys = np.linspace(-1, 1, 61)
     pts = np.zeros((len(xs), len(ys), 3))
     for i, x in enumerate(xs):
+        # half width: inside the skin at the roof-rail height (narrows at the tailgate)
+        zr = float(L.roof_z(x, L.roof_side_y))
+        yw = min(L.roof_side_y + 0.02, P.side_y(x, zr) - 0.035)
         for j, t in enumerate(ys):
-            yw = L.roof_side_y + 0.035
             y = t * yw
             z = float(L.roof_z(x, y))
-            # rolls down at the side rails (grab handle area) and at the front header
-            z -= 0.05 * smoothstep(0.80, 1.0, abs(t)) ** 1.5
-            z -= 0.03 * smoothstep(L.ws_top[0] - 0.06, L.ws_top[0] + 0.02, x)
-            z -= 0.03 * smoothstep(L.d_pillar_x[1] + 0.10, L.d_pillar_x[1] - 0.02, x)
+            z -= 0.035 * smoothstep(0.82, 1.0, abs(t)) ** 1.5       # rolls into the side rails
+            z -= 0.025 * smoothstep(x0 - 0.06, x0, x)               # header roll
+            z -= 0.030 * smoothstep(x1 + 0.10, x1, x)               # tailgate roll
             pts[i, j] = (x, y, z)
     ob = mesh.grid_object("Trim_Headliner", pts, collection=COL, material=ctx.mat("headliner"), smooth=False)
     mesh.recalc_normals(ob)
     if ob.data.polygons[len(ob.data.polygons) // 2].normal.z > 0:
         ob.data.flip_normals()
     mesh.shade_smooth(ob, 60)
-    # front console for the interior lights (8V: map lights + SOS-less panel)
-    xh = L.ws_top[0] - 0.09
+    xh = x0 - 0.10
     zr = float(L.roof_z(xh, 0.0))
     g.rbox("Trim_RoofConsole", (0.16, 0.20, 0.022), (xh, 0, zr - 0.011), 0.008, 3, COL,
            ctx.mat("black_satin"))
     for s in (1, -1):
         g.rbox(f"Trim_RoofConsole_Lens_{'L' if s > 0 else 'R'}", (0.050, 0.060, 0.004),
                (xh - 0.01, s * 0.050, zr - 0.0225), 0.002, 2, COL, ctx.mat("lens_clear"))
-    # rear dome light
-    xr = -2.40
+    xr = -2.30
     zr = float(L.roof_z(xr, 0.0))
-    g.rbox("Trim_RearDomeLight", (0.08, 0.14, 0.012), (xr, 0, zr - 0.006), 0.005, 2, COL,
+    g.rbox("Trim_RearDomeLight", (0.08, 0.14, 0.012), (xr, 0, zr - 0.004), 0.005, 2, COL,
            ctx.mat("lens_clear"))
     return ob
 
@@ -162,8 +164,8 @@ def _pillar(ctx, name, path, widths, depth, mat, out_dir):
         for k in range(nv):
             a = math.pi * k / (nv - 1)
             sec.append(path[i] + side * (w / 2) * math.cos(a) - o * depth * max(math.sin(a), 0.0) ** 0.5)
-        sec.append(path[i] - side * (w / 2) + o * 0.01)
-        sec.append(path[i] + side * (w / 2) + o * 0.01)
+        sec.append(path[i] - side * (w / 2) + o * 0.008)
+        sec.append(path[i] + side * (w / 2) + o * 0.008)
         secs.append(sec)
     ob = mesh.grid_object(name, np.array(secs), closed_v=True, collection=COL, material=mat,
                           smooth=False, cap_u=True)
@@ -172,64 +174,79 @@ def _pillar(ctx, name, path, widths, depth, mat, out_dir):
     return ob
 
 
+def _on_skin(P, pts, s, inset):
+    """Move (x, |y|, z) points to |y| = skin - inset on side s."""
+    return np.array([(x, s * (P.side_y(x, z) - inset), z) for x, _, z in pts])
+
+
 def _pillars(ctx, L):
+    P = layout.probe(ctx)
     hl = ctx.mat("headliner")
     for s, nm in ((1, "L"), (-1, "R")):
-        # A pillar: from the dash corner up along the screen edge to the roof rail
-        ax, ay, az = L.a_pillar_base
-        top = (L.ws_top[0] + 0.03, s * (L.roof_side_y + 0.02), L.ws_top[1] - 0.02)
-        P = np.array([(ax + (top[0] - ax) * u, s * (ay + (abs(top[1]) - ay) * u),
-                       az + (top[2] - az) * u) for u in np.linspace(0, 1, 24)])
-        W = np.linspace(0.085, 0.065, 24)
-        _pillar(ctx, f"Trim_APillar_{nm}", P, W, 0.020, hl, (0.15, s, 0.30))
-        # B pillar upper (belt -> roof) and lower (floor -> belt, between the doors)
+        # A pillar: from the dash corner up along the screen edge to the header
+        a0, a1 = np.array(L.a_pillar_base), np.array(L.a_pillar_top)
+        pts = np.array([a0 + (a1 - a0) * u for u in np.linspace(0, 1, 24)])
+        pts = np.array([(x, s * (P.side_y(x, z) - (0.066 - 0.020 * u)), z)
+                        for (x, _, z), u in zip(pts, np.linspace(0, 1, len(pts)))])
+        _pillar(ctx, f"Trim_APillar_{nm}", pts, np.linspace(0.080, 0.062, 24), 0.018, hl, (0.15, s, 0.30))
+        # B pillar upper (belt -> headliner) and lower (sill -> belt, between the doors)
         bx = L.b_pillar_x
-        P = np.array([(bx, s * (0.700 - 0.08 * u ** 1.3), 1.00 + (float(L.roof_z(bx, 0.6)) - 0.05 - 1.00) * u)
-                      for u in np.linspace(0, 1, 18)])
-        _pillar(ctx, f"Trim_BPillar_Upper_{nm}", P, np.linspace(0.105, 0.080, 18), 0.030, hl, (0, s, 0))
-        P = np.array([(bx, s * 0.712, z) for z in np.linspace(0.30, 1.01, 12)])
-        _pillar(ctx, f"Trim_BPillar_Lower_{nm}", P, np.full(12, 0.090), 0.025, ctx.mat("hard_plastic"),
+        zb = float(L.belt_z(bx))
+        zt = float(L.roof_z(bx, 0.6)) - 0.01
+        pts = _on_skin(P, [(bx, 0, z) for z in np.linspace(zb - 0.02, zt, 18)], s, 0.032)
+        _pillar(ctx, f"Trim_BPillar_Upper_{nm}", pts, np.linspace(0.100, 0.080, 18), 0.022, hl, (0, s, 0))
+        pts = _on_skin(P, [(bx, 0, z) for z in np.linspace(0.30, zb - 0.01, 12)], s, L.door_inset + 0.005)
+        _pillar(ctx, f"Trim_BPillar_Lower_{nm}", pts, np.full(12, 0.060), 0.015, ctx.mat("hard_plastic"),
                 (0, s, 0))
-        # belt height adjuster rail on the B pillar
-        g.rbox(f"Trim_BPillar_BeltAdjuster_{nm}", (0.03, 0.012, 0.09),
-               (bx, s * 0.655, 1.14), 0.004, 2, COL, ctx.mat("black_satin"))
-        # C pillar (behind the rear door) up to the roof
+        g.rbox(f"Trim_BPillar_BeltAdjuster_{nm}", (0.03, 0.010, 0.09),
+               (bx, s * (P.side_y(bx, 1.15) - 0.058), 1.15), 0.004, 2, COL, ctx.mat("black_satin"))
+        # C pillar divider between the rear door window and the quarter light
         c0, c1 = L.c_pillar_x
-        P = np.array([(c0 + (c1 - c0) * u, s * (0.695 - 0.075 * u ** 1.2), 1.03 + (1.25 - 1.03) * u)
-                      for u in np.linspace(0, 1, 18)])
-        _pillar(ctx, f"Trim_CPillar_{nm}", P, np.linspace(0.20, 0.16, 18), 0.035, hl, (0, s, 0.2))
-        # D pillar at the tailgate
-        d0, d1 = L.d_pillar_x
-        P = np.array([(d0 + (d1 - d0) * u, s * (0.66 - 0.07 * u), 0.98 + (1.24 - 0.98) * u)
-                      for u in np.linspace(0, 1, 16)])
-        _pillar(ctx, f"Trim_DPillar_{nm}", P, np.linspace(0.12, 0.10, 16), 0.03, hl, (-0.4, s, 0))
-        # rear quarter trim (beside the rear seat back / luggage area)
-        xs = np.linspace(L.rear_door_x[1] - 0.01, d0 + 0.02, 24)
-        zs = np.linspace(0.40, 1.03, 20)
-        pts = np.array([[(x, s * (0.685 - 0.04 * smoothstep(0.85, 1.03, z)
-                                  + 0.02 * (1 - smoothstep(0.40, 0.50, z))), z) for z in zs] for x in xs])
-        q = mesh.grid_object(f"Trim_Quarter_{nm}", pts, collection=COL, material=ctx.mat("hard_plastic"),
-                             smooth=False)
+        z0c = float(L.belt_z(c0))
+        pts = [(c0 + (c1 - c0) * u, 0, z0c + (float(L.roof_z(c1, 0.6)) - 0.01 - z0c) * u)
+               for u in np.linspace(0, 1, 16)]
+        _pillar(ctx, f"Trim_CPillar_{nm}", _on_skin(P, pts, s, 0.030), np.full(16, 0.075), 0.018, hl,
+                (0, s, 0.2))
+        # D pillar: wide trim from the quarter-light rear edge back to the tailgate
+        dl = np.array(L.dlo_rear)
+        pts = [(x - 0.060, 0, z) for x, z in dl if z < 1.30]
+        _pillar(ctx, f"Trim_DPillar_{nm}", _on_skin(P, pts, s, 0.055),
+                np.linspace(0.12, 0.09, len(pts)), 0.020, hl, (0, s, 0.1))
+        # rear quarter trim below the belt (beside the rear backrest / luggage area)
+        xs = np.linspace(L.quarter_x[0], L.quarter_x[1], 26)
+        rows = []
+        for x in xs:
+            b = float(L.belt_z(x))
+            col_ = []
+            for z in np.linspace(0.40, b, 20):
+                y = P.side_y(x, min(z, b - 0.05)) - (L.door_inset - 0.015)
+                t = smoothstep(b - 0.04, b, z)
+                y = y * (1 - t) + (P.side_y(x, b + 0.008) - L.glass_clear) * t
+                col_.append((x, s * y, z))
+            rows.append(col_)
+        q = mesh.grid_object(f"Trim_Quarter_{nm}", np.array(rows), collection=COL,
+                             material=ctx.mat("hard_plastic"), smooth=False)
         mesh.solidify(q, 0.004, offset=-1.0 if s > 0 else 1.0)
         mesh.recalc_normals(q)
         mesh.shade_smooth(q, 50)
         # sill trims (inner door sills) with aluminium S line scuff plates on top
-        for (x0, x1), tag in ((L.front_door_x, "F"), (L.rear_door_x, "R")):
-            x0_, x1_ = x0 - 0.02, x1 + 0.02
-            sill = g.rbox(f"Trim_Sill_{tag}{nm}", (x0_ - x1_, 0.07, 0.10), ((x0_ + x1_) / 2, s * 0.715, 0.29),
-                          0.015, 3, COL, ctx.mat("hard_plastic"))
-            plate = g.rbox(f"Trim_ScuffPlate_{tag}{nm}", (x0_ - x1_ - 0.06, 0.055, 0.004),
-                           ((x0_ + x1_) / 2, s * 0.722, 0.342), 0.0015, 2, COL, ctx.mat("aluminium_brushed"))
+        for (x0, x1), tag in ((L.front_door_x, "F"), ((L.rear_door_x[0], -2.17), "R")):
+            x0_, x1_ = x0 - 0.01, x1 + 0.01
+            ys = P.side_y((x0 + x1) / 2, 0.30) - 0.165
+            g.rbox(f"Trim_Sill_{tag}{nm}", (x0_ - x1_, 0.08, 0.10), ((x0_ + x1_) / 2, s * ys, 0.29),
+                   0.015, 3, COL, ctx.mat("hard_plastic"))
+            g.rbox(f"Trim_ScuffPlate_{tag}{nm}", (x0_ - x1_ - 0.06, 0.060, 0.004),
+                   ((x0_ + x1_) / 2, s * (ys + 0.005), 0.342), 0.0015, 2, COL, ctx.mat("aluminium_brushed"))
             if tag == "F":
                 t = g.text_mesh(f"Trim_ScuffPlate_{tag}{nm}_Logo", "S line", size=0.016, col=COL,
                                 mat=ctx.mat("black_satin"), extrude=0.0003)
-                t.data.transform(g.frame(((x0_ + x1_) / 2, s * 0.722, 0.344), (0, 0, 1), (-1, 0, 0) if s > 0 else (-1, 0, 0)))
+                t.data.transform(g.frame(((x0_ + x1_) / 2, s * (ys + 0.005), 0.344), (0, 0, 1), (-1, 0, 0)))
 
 
 def _parcel_shelf(ctx, L):
     """Luggage compartment cover behind the rear backrest."""
     x0 = L.rear_back_top[0] - 0.05
-    x1 = L.d_pillar_x[0] + 0.02
+    x1 = L.tailgate_x + 0.03
     nx, ny = 20, 30
     pts = np.zeros((nx, ny, 3))
     for i, x in enumerate(np.linspace(x0, x1, nx)):

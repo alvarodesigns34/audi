@@ -46,8 +46,9 @@ def _lip(L, y):
 def wing_ctrl(L, y):
     """Control points (x, z) of the upper dash at station y (windscreen -> under)."""
     ay = abs(y)
-    xw = L.ws_base[0] - 0.015 + L.ws_base_side_dx * (ay / 0.65) ** 2
-    zw = L.ws_base[1] + 0.006 + 0.012 * (ay / 0.70) ** 2
+    # front edge tucked 55 mm behind / 12 mm under the glass base (body cowl)
+    xw = L.ws_base[0] - 0.055 + L.ws_base_side_dx * (ay / 0.65) ** 2
+    zw = L.ws_base[1] + 0.002 + 0.010 * (ay / 0.70) ** 2
     lx, lz = _lip(L, y)
     w = float(_tub_w(L, y)) if y > 0 else 0.0
     tub_lip_z = 0.872                     # E lower bezel of the cluster (below the gauges)
@@ -291,7 +292,7 @@ def _top_details(ctx, L, shape):
     b = g.Batch("Dash_Defrost_Slats", col, blk)
     for i in range(9):
         yi = -0.36 + i * 0.09
-        xs = L.ws_base[0] - 0.055 + L.ws_base_side_dx * (yi / 0.65) ** 2
+        xs = L.ws_base[0] - 0.090 + L.ws_base_side_dx * (yi / 0.65) ** 2
         zt = shape.top_z(xs, yi)
         for k in range(5):
             v, f = g.box_verts((xs - 0.004 * k, yi, zt + 0.0008), (0.0008, 0, 0), (0, 0.040, 0),

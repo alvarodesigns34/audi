@@ -22,42 +22,47 @@ COL = "Interior/Doors"
 
 
 class DoorShape:
-    """Inboard surface y(x, z) of one (left) door trim."""
+    """Inboard surface y(x, z) of one (left) door trim, derived from the outer
+    body skin moved inboard by ``L.door_inset`` (so the trim follows the door's
+    curvature and tumblehome) and rolled out to the glass at the belt line."""
 
-    def __init__(self, L, front=True):
+    def __init__(self, L, front=True, probe=None):
         self.front = front
+        self.L = L
+        self.P = probe if probe is not None else layout.probe(None)
         if front:
             self.x0, self.x1 = L.front_door_x       # front (larger x) -> rear
-            self.belt = L.belt_z_front
-            self.y0 = L.door_y
         else:
             self.x0, self.x1 = L.rear_door_x
-            self.belt = L.belt_z_rear
-            self.y0 = L.door_y_rear
+        self.belt = float(L.belt_z(0.5 * (self.x0 + self.x1)))
         self.zb = L.floor_z + 0.045
-        self.L = L
+        re = np.array(L.rear_door_edge)
+        self._rz, self._rx = re[:, 0], re[:, 1]
+
+    def belt_at(self, x):
+        return float(self.L.belt_z(x))
 
     def x_edges(self, z):
         """front / rear x of the trim at height z."""
         if self.front:
-            xf = self.x0 - 0.02 - 0.06 * smoothstep(0.85, 1.0, z)   # mirror-sail corner
-            xr = self.x1 + 0.01
-        else:
-            xf = self.x0 - 0.01
-            # rear door: lower rear corner follows the wheel arch
-            xr = self.x1 + 0.22 * (1 - smoothstep(0.42, 0.66, z))
-        return xf, xr
+            return self.x0, self.x1
+        return self.x0, float(np.interp(z, self._rz, self._rx))
 
     def y(self, x, z):
         """Inboard surface |y| (smaller = further into the cabin)."""
-        b = self.belt
-        y = self.y0
-        y += 0.018 * smoothstep(0.55, 0.30, z)                      # lower panel slightly outboard
-        y -= 0.022 * smoothstep(b - 0.13, b - 0.03, z) * (1 - smoothstep(b - 0.03, b, z))  # sill shoulder
-        y += 0.030 * smoothstep(b - 0.02, b + 0.003, z)             # roll out toward the glass
+        L, P = self.L, self.P
+        b = self.belt_at(x)
+        zc = min(z, b - 0.05)
+        y = P.side_y(x, zc) - L.door_inset
+        y += 0.012 * smoothstep(0.55, 0.30, z)                      # lower panel slightly outboard
+        y -= 0.016 * smoothstep(b - 0.15, b - 0.06, z) * (1 - smoothstep(b - 0.04, b, z))  # sill shoulder
+        # window-sill cap rolls out to just inside the glass at the belt
+        yg = P.side_y(x, b + 0.008) - L.glass_clear
+        t = smoothstep(b - 0.040, b + 0.002, z)
+        y = y * (1 - t) + yg * t
         xf, xr = self.x_edges(z)
         e = min(abs(x - xf), abs(x - xr))
-        y += 0.020 * (1 - smoothstep(0.0, 0.025, e))                # rounded front/rear edges
+        y += 0.020 * (1 - smoothstep(0.0, 0.025, e)) * (1 - t)      # rounded front/rear edges
         y += 0.020 * (1 - smoothstep(0.0, 0.025, z - self.zb))      # rounded bottom edge
         return y
 
@@ -67,11 +72,14 @@ def _panel(ctx, D, name):
     S = np.linspace(0, 1, nx)
     T = np.linspace(0, 1, nz)
     pts = np.zeros((nx, nz, 3))
-    for j, t in enumerate(T):
-        z = D.zb + (D.belt + 0.003 - D.zb) * (1 - (1 - t) ** 1.15)
-        xf, xr = D.x_edges(z)
-        for i, s in enumerate(S):
+    for i, s in enumerate(S):
+        xm = D.x0 + (D.x1 - D.x0) * s
+        for j, t in enumerate(T):
+            ztop = D.belt_at(xm) + 0.003
+            z = D.zb + (ztop - D.zb) * (1 - (1 - t) ** 1.15)
+            xf, xr = D.x_edges(z)
             x = xf + (xr - xf) * s
+            z = D.zb + (D.belt_at(x) + 0.003 - D.zb) * (1 - (1 - t) ** 1.15)
             pts[i, j] = (x, D.y(x, z), z)
     ob = mesh.grid_object(name, pts, collection=COL, material=ctx.mat("soft_touch"), smooth=False)
     mesh.recalc_normals(ob)
@@ -152,7 +160,7 @@ def _grille_mesh(ctx, D, name, inner):
 
 
 def _door(ctx, L, front, side_name):
-    D = DoorShape(L, front)
+    D = DoorShape(L, front, layout.probe(ctx))
     nm = f"Door_{'F' if front else 'R'}{side_name}"
     objs = []
     stitch = g.Batch(f"{nm}_Stitching", COL, ctx.mat("stitch_grey"))
@@ -167,11 +175,13 @@ def _door(ctx, L, front, side_name):
     if front:
         ins = _insert(ctx, D, f"{nm}_Insert", xv - 0.04, xr + 0.10, b - 0.235, b - 0.115, 0.030, stitch)
     else:
-        ins = _insert(ctx, D, f"{nm}_Insert", xf - 0.12, xr + 0.16, b - 0.235, b - 0.125, 0.030, stitch)
+        ins = _insert(ctx, D, f"{nm}_Insert", xf - 0.12, D.x_edges(b - 0.18)[1] + 0.07, b - 0.235,
+                      b - 0.125, 0.030, stitch)
     objs.append(ins)
     # armrest: horizontal pad with rounded inboard face; pull cup at its front
     za = b - 0.270 if front else b - 0.275
-    a0, a1 = (xv - 0.14, xr + 0.08) if front else (xf - 0.10, xr + 0.18)
+    za_ = b - 0.270
+    a0, a1 = (xv - 0.14, xr + 0.08) if front else (xf - 0.10, D.x_edges(za_)[1] + 0.07)
 
     def arm_fn(p, a0=a0, a1=a1, za=za):
         q = p.copy()

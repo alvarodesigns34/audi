@@ -56,8 +56,8 @@ HOOD_SIDE = [(-380, 712), (-250, 752), (-50, 790), (150, 806), (350, 806),
 HOOD_FRONT = [(0, 738), (300, 737), (500, 735), (620, 742), (700, 758)]
 
 # Tailgate outline (rear view, y/z), one side, from top to centre bottom
-TAILGATE = [(545, 1300), (560, 1150), (575, 1030), (600, 950), (615, 885),
-            (600, 815), (565, 745), (520, 700), (380, 690), (0, 688)]
+TAILGATE = [(552, 1300), (595, 1160), (640, 1065), (660, 975), (640, 890),
+            (598, 800), (560, 728), (505, 672), (380, 674), (0, 678)]
 
 # Windscreen (top view x/y outline, one side, base -> pillar -> header)
 WINDSCREEN = [(-345, 0), (-360, 300), (-400, 560), (-460, 690), (-1180, 585),
@@ -284,4 +284,63 @@ def front_cutters(surf, col, material=None):
                                      depth_in=0.14, mirror=side))
         obs.append(front_view_cutter("Cut_Intake" + sfx, surf, SIDE_INTAKE, col, material,
                                      depth_in=0.10, mirror=side))
+    return obs
+
+
+# --------------------------------------------------------------------------
+# Rear-end openings, digitised by ray casting the calibrated rear 3/4 photo
+# (reference/match_sline_rear.json) onto the skin.  Left side, mm.
+# --------------------------------------------------------------------------
+
+# Tail lamp: rear-face part (y, z) from the inner tip outwards along the top,
+# then the side part (x, z) and back along the lower edge.
+TAILLIGHT_REAR_TOP = [(352, 903), (392, 944), (520, 946), (645, 942), (740, 937)]
+TAILLIGHT_SIDE = [(-3120, 934), (-3020, 928), (-2950, 912), (-2912, 880),
+                  (-2918, 852), (-2990, 832), (-3100, 818)]
+TAILLIGHT_REAR_BOTTOM = [(750, 806), (654, 793), (629, 809), (589, 834), (480, 868),
+                         (400, 888)]
+# S line diffuser (rear view, half outline, top edge from the side to centre)
+DIFFUSER = [(0, 392), (300, 380), (560, 360), (700, 338), (760, 300), (780, 240),
+            (760, 160), (0, 160)]
+# twin tail pipes on the LEFT (2.0 TDI S line), centres (y, z) and diameter
+EXHAUST_TIPS = [(266, 255), (342, 250)]
+EXHAUST_D = 76
+
+
+TL_SPLIT_X = -3050   # rear-face part behind, side part ahead of this plane
+TAILLIGHT_REAR = [(352, 903), (392, 944), (520, 946), (645, 942), (740, 937),
+                  (900, 935), (900, 815), (750, 806), (654, 793), (629, 809),
+                  (589, 834), (480, 868), (400, 888)]
+TAILLIGHT_SIDE_XZ = [(-3050, 931), (-3020, 928), (-2950, 912), (-2912, 880),
+                     (-2918, 852), (-2990, 832), (-3050, 825)]
+
+
+def taillight_prisms(col, material=None, mirror=False, grow=0.0):
+    """Two planar prisms (rear face + side) sharing the plane x = TL_SPLIT_X."""
+    xs = TL_SPLIT_X * 1e-3
+    rear = np.asarray(TAILLIGHT_REAR, float) * 1e-3
+    side = np.asarray(TAILLIGHT_SIDE_XZ, float) * 1e-3
+    if grow:
+        rear = mesh.polyline_offset_2d(rear, grow if mesh.polygon_area(rear) > 0 else -grow)
+    s = -1 if mirror else 1
+    sfx = ".R" if mirror else ".L"
+    r = mesh.extrude_polygon("Cut_TaillightRear" + sfx, rear * [s, 1], xs + 3.6, plane="YZ",
+                             offset=-3.6, collection=col, material=material)
+    y0, y1 = (0.70, 1.05) if not mirror else (-1.05, -0.70)
+    sd = mesh.extrude_polygon("Cut_TaillightSide" + sfx, side, y1 - y0, plane="XZ",
+                              offset=y0, collection=col, material=material)
+    return [r, sd]
+
+
+def rear_cutters(surf, col, material=None):
+    obs = []
+    for mirror in (False, True):
+        obs += taillight_prisms(col, material, mirror)
+    g = np.asarray(DIFFUSER, float)
+    full = np.vstack([g[:-1], (g[::-1] * [-1, 1])[1:-1]])
+    from ..core.curves import catmull_rom, resample
+    dense = resample(np.vstack([full]), 160, closed=True) * 1e-3
+    P, _ = surf.project(dense, "YZ", side=-1)
+    P = np.array([p for p in P if p is not None])
+    obs.append(local_prism("Cut_Diffuser", P, np.array([-1.0, 0, 0]), 0.08, 0.06, col, material))
     return obs

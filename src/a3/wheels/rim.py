@@ -41,7 +41,6 @@ PCD_R = spec.PCD / 2                          # 56   C
 BORE_R = spec.CENTRE_BORE / 2                 # 28.55 C
 LIP_R = 245.5                                 # E  outer edge of diamond-cut lip (bead r + J height)
 WIN_R_OUT = 233.8                             # E  windows run under the lip (photo: lip ring ~ 0.08 R)
-WIN_R_BACK = 219.0                            # E  max radius of the window walls at the back (barrel inner wall)
 BOLT_SEAT_R = 10.2                            # E  R13 ball-seat bore at the pocket floor
 BOLT_HOLE_R = 7.5                             # E  M14x1.5 clearance
 POCKET_FLOOR = 68.0                           # E  floor of the star recess (y)
@@ -92,21 +91,21 @@ def pq_to_3d(pq, y):
 # ----------------------------------------------------------------- outlines
 # Window outline: (r [mm], alpha [deg, CCW from the window centre line]).
 # Measured on a rectified photo of the wheel (white A3 S line, Wikimedia
-# Commons), median of three windows, R_lip = 246 mm, each flank moved 3 deg
-# into the window to remove the dark painted flank seen in perspective (S/E).
+# Commons), median of three windows, R_lip = 246 mm; the boundary of the
+# dark region is the diamond-cut edge (flanks lie inside it)  (S/E).
 # The CW flank is the almost straight, slightly offset edge (-31..-24 deg);
 # the CCW flank is the long curved edge that bulges to +34 deg at r ~ 0.6 R and
 # sweeps back towards the hub -> thin arms that flare strongly into the lip.
 WINDOW_CP = [
-    (64.5, -15.0), (70.0, -20.0), (77.0, -24.5), (86.0, -27.0), (98.4, -27.6),
-    (113.0, -27.0), (128.0, -26.0), (142.7, -25.2), (157.4, -24.4), (172.0, -23.7),
-    (187.0, -23.0), (201.7, -22.2), (216.5, -21.5), (226.0, -20.8), (231.0, -19.4),
-    (233.2, -16.0), (233.8, -8.5), (233.8, 0.0), (233.2, 6.5), (231.0, 10.5),
-    (226.0, 13.8), (216.5, 17.5), (201.7, 22.2), (187.0, 26.6), (172.0, 28.8),
-    (157.4, 29.8), (142.7, 30.0), (128.0, 29.2), (113.0, 27.0), (98.4, 23.0),
-    (86.0, 16.5), (77.0, 9.5), (70.5, 2.5), (66.0, -4.0), (64.0, -9.5),
+    (61.0, -14.0), (66.4, -21.5), (73.8, -28.0), (83.6, -30.6), (98.4, -30.8),
+    (113.0, -30.0), (128.0, -29.0), (142.7, -28.2), (157.4, -27.4), (172.0, -26.7),
+    (187.0, -26.0), (201.7, -25.2), (216.5, -24.5), (226.0, -23.8), (231.0, -22.2),
+    (233.2, -18.5), (233.8, -10.0), (233.8, 0.0), (233.2, 8.5), (231.0, 13.5),
+    (226.0, 16.8), (216.5, 20.5), (201.7, 25.2), (187.0, 29.6), (172.0, 31.8),
+    (157.4, 32.8), (142.7, 33.0), (128.0, 32.2), (113.0, 30.2), (98.4, 26.8),
+    (83.6, 21.2), (73.8, 15.0), (66.4, 7.5), (61.5, 0.0), (59.8, -7.0),
 ]
-WIN_SCALE = 0.95     # angular scale about the window centre (spoke width tuning vs photo)
+WIN_SCALE = 1.00     # angular scale about the window centre (spoke width tuning vs photo)
 LOBE_REL = -40.0     # deg, bolt lobe direction relative to window centre (photo ~-35, E)
 
 
@@ -284,7 +283,6 @@ def build_rim(mb, mat_black=0, mat_diamond=1, detail="high"):
     win_top, win_back, win_back_pq = [], [], []
     for k in range(5):
         W = window_outline(k)
-        r0 = np.hypot(W[:, 0], W[:, 1])
         top = mb.add(face_lift(W) * MM)
         win_top.append((W, top))
         # micro chamfer on the black flank side (catches a highlight line)

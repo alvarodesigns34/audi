@@ -20,7 +20,7 @@ def _mirror(ctx, L):
     thin frame) on a stem from the rain/light sensor cover."""
     x0 = L.ws_top[0] + 0.09          # E foot on the glass below the header
     z0 = L.ws_z(x0) - 0.012
-    sens = g.pillow("Mirror_SensorCover", (0.085, 0.065, 0.024), (x0, 0, z0 - 0.004), (2.6, 2.6, 2.4), 10,
+    sens = g.pillow("Mirror_SensorCover", (0.085, 0.065, 0.024), (x0, 0, z0 - 0.010), (2.6, 2.6, 2.4), 10,
                     COL, ctx.mat("black_satin"),
                     fn=lambda p: p @ g.rot_y(math.radians(-20)).T)
     stem_top = np.array([x0 + 0.015, 0, z0 - 0.020])
@@ -104,25 +104,25 @@ def _buckle(ctx, name, pos, direction):
 
 def _belts(ctx, L):
     web = ctx.mat("seatbelt")
+    P = layout.probe(ctx)
     bx = L.b_pillar_x
+    zbelt = float(L.belt_z(bx))
     for s, nm in ((1, "L"), (-1, "R")):
-        # front: webbing hangs from the B-pillar D-ring down into the lower pillar
-        top = np.array([bx + 0.005, s * 0.640, 1.125])
-        path = np.array([top + np.array([0.0, 0.0, -0.015 * k]) for k in range(2)]
-                        + [np.array([bx + 0.006, s * (0.655 + 0.018 * u), 1.10 - 0.68 * u])
-                           for u in np.linspace(0.02, 1, 24)])
+        # front: webbing hangs from the B-pillar D-ring down the pillar trim into
+        # the slot at the belt line (retractor hidden in the lower pillar)
+        zs = np.linspace(1.13, zbelt - 0.005, 24)
+        path = np.array([(bx + 0.006, s * (P.side_y(bx, z) - 0.055), z) for z in zs])
         _ribbon(f"Belt_F{nm}_Webbing", path, np.tile((0, -s, 0), (len(path), 1)), 0.048, 0.0012, COL, web)
-        g.rbox(f"Belt_F{nm}_DRing", (0.050, 0.020, 0.040), tuple(top + np.array([0, 0, 0.012])), 0.008, 2, COL,
-               ctx.mat("black_satin"))
-        _latch(ctx, f"Belt_F{nm}_Latch", (bx + 0.004, s * 0.648, 0.86), (0, -s, 0), (0, 0, 1))
-        # lower anchor on the sill, behind the seat (rail end)
-        g.rbox(f"Belt_F{nm}_Anchor", (0.06, 0.02, 0.03), (bx + 0.05, s * 0.66, 0.30), 0.006, 2, COL,
-               ctx.mat("black_satin"))
+        top = path[0]
+        g.rbox(f"Belt_F{nm}_DRing", (0.050, 0.018, 0.040), tuple(top + np.array([0, -s * 0.004, 0.012])),
+               0.008, 2, COL, ctx.mat("black_satin"))
+        zl = zbelt + 0.035
+        _latch(ctx, f"Belt_F{nm}_Latch", (bx + 0.004, s * (P.side_y(bx, zl) - 0.062), zl), (0, -s, 0), (0, 0, 1))
         # buckle on the inboard side of each front seat
         H = L.h_point(s)
         _buckle(ctx, f"Belt_F{nm}_Buckle", (H[0] - 0.06, s * 0.125, H[2] - 0.030), (0.25, -s * 0.15, 1))
         # rear outer: webbing from the parcel shelf guide down the C pillar side
-        rt = np.array([L.rear_back_top[0] - 0.02, s * 0.58, L.rear_back_top[1] + 0.005])
+        rt = np.array([L.rear_back_top[0] - 0.02, s * 0.60, L.rear_back_top[1] + 0.012])
         path = np.array([rt + np.array([0.10 * u, s * 0.06 * u, -0.45 * u]) for u in np.linspace(0, 1, 16)])
         _ribbon(f"Belt_R{nm}_Webbing", path, np.tile((0.4, -s, 0), (len(path), 1)), 0.048, 0.0012, COL, web)
         g.rbox(f"Belt_R{nm}_Guide", (0.05, 0.06, 0.018), tuple(rt + np.array([0.0, 0, 0.004])), 0.006, 2, COL,
@@ -142,8 +142,8 @@ def _belts(ctx, L):
 
 def _grab_handles(ctx, L):
     """Folding roof grab handles over the passenger and rear doors."""
-    for s, x, nm in ((-1, -1.55, "FR"), (1, -2.45, "RL"), (-1, -2.45, "RR")):
-        y = s * (L.roof_side_y + 0.005)
+    for s, x, nm in ((-1, -1.05, "FR"), (1, -2.05, "RL"), (-1, -2.05, "RR")):
+        y = s * (L.roof_side_y - 0.005)
         z = float(L.roof_z(x, y)) - 0.045
         pts = []
         for u in np.linspace(0, 1, 20):

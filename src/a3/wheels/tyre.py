@@ -106,10 +106,6 @@ class Section:
         """section point (r, y) at arc length u, depth h below the surface"""
         return self.P(u) - np.asarray(h)[..., None] * self.N(u)
 
-    def u_of_y_side(self, y):
-        """arc length of the outboard sidewall point at lateral y (not used)"""
-        raise NotImplementedError
-
 
 def _smooth(x, a, b):
     t = np.clip((np.asarray(x, float) - a) / (b - a), 0, 1)

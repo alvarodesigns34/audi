@@ -26,7 +26,7 @@ import numpy as np
 from .. import spec
 from ..core import mesh as cmesh
 from . import builder as B
-from .rim import revolve_rings, ET
+from .rim import revolve_rings
 
 MM = 1e-3
 N_DISC = 120
