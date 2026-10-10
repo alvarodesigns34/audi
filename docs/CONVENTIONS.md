@@ -24,11 +24,20 @@ def build(ctx):            # ctx: a3.build.BuildContext
 - Materiales **solo** a través de `ctx.mat(clave)`; si falta uno, añadirlo en `core/materials.py`.
 - Geometría con normales coherentes hacia fuera, sin caras degeneradas, shading suave con
   aristas vivas donde correspondan (`mesh.shade_smooth(ob, angle)`).
-- Sin texturas de imagen: el detalle se modela con geometría (los únicos “mapas” permitidos
-  son el ruido procedural de grano de cuero/plástico definido en la librería de materiales).
+- El detalle de forma se modela con geometría. Las texturas están permitidas para lo que es
+  textura de verdad (grano de cuero, perforado, tejidos, plásticos texturados, rotulación de
+  botones, gráficos de pantallas, marcaje del neumático, escamas del metalizado): generadas por
+  código (procedurales y horneadas a imagen en `assets/textures/`) para que viajen en el GLB.
 - Cotas en el código en mm convertidas con `spec.m()` o escritas en metros con comentario.
 - Cada cota relevante: comentario con su origen (C confirmado / S fuente secundaria / E estimada).
 
+## Publicación
+- `docs/` es la web de GitHub Pages (rama `main`, carpeta `/docs`): `docs/index.html` (visor
+  Three.js), `docs/models/*.glb|*.usdz` (calidad completa, nunca simplificados), `docs/renders/`.
+- Fotos de referencia: `tools/fetch_references.sh` → `reference/photos/` (no versionadas).
+
 ## Calidad
 - Proporciones reales antes que detalle. Contrastar con fotos de referencia.
-- Presupuesto orientativo: carrocería 300–600 k tris, cada rueda 60–120 k, interior 0.5–1 M.
+- No simplificar ni diezmar los modelos publicados. Límite práctico: cada archivo < 100 MB
+  (límite de GitHub); si se supera, usar compresión sin pérdida visible (p. ej. meshopt o Draco
+  con cuantización ≥ 16 bits), nunca reducir polígonos.

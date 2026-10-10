@@ -11,6 +11,10 @@ su origen (C = confirmada, S = fuente secundaria, E = estimada).
 
 ![Frontal 3/4](docs/renders/front34.png)
 
+**Visor web (GitHub Pages):** `https://alvarodesigns34.github.io/audi/` — se publica desde la
+rama `main`, carpeta `/docs` (Settings → Pages → *Deploy from a branch* → `main` / `/docs`).
+En iPhone/iPad, el enlace AR del visor abre `docs/models/a3_sportback_8v.usdz` en Vista Rápida.
+
 ## Uso rápido
 
 ```bash
@@ -20,11 +24,12 @@ PY=/opt/bpyenv/bin/python
 # coche completo + renders de verificación
 $PY tools/run.py --views front34,rear34,side_r,cockpit --out out/renders
 
-# guardar .blend y exportar glTF binario (Draco) para el visor web
-$PY tools/run.py --save out/a3_sportback_8v.blend --glb viewer/a3_sportback_8v.glb
+# guardar .blend y exportar los modelos publicados (calidad completa, sin simplificar)
+$PY tools/run.py --save out/a3_sportback_8v.blend --glb docs/models/a3_sportback_8v.glb
+$PY tools/export_usdz.py docs/models/a3_sportback_8v.usdz     # iPhone/iPad (Vista Rápida/AR)
 
-# visor web (Three.js)
-cd viewer && python3 -m http.server 8000   # abrir http://localhost:8000
+# visor web (Three.js) en local
+cd docs && python3 -m http.server 8000   # abrir http://localhost:8000
 ```
 
 `--parts body,glass,...` construye solo un subconjunto; `--clay` pinta la carrocería en gris

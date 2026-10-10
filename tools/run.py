@@ -27,6 +27,7 @@ def main():
     ap.add_argument("--samples", type=int, default=48)
     ap.add_argument("--save", default="")
     ap.add_argument("--glb", default="")
+    ap.add_argument("--no-draco", action="store_true", help="uncompressed GLB (exact geometry)")
     ap.add_argument("--tag", default="")
     ap.add_argument("--strict", action="store_true")
     ap.add_argument("--clay", action="store_true", help="grey clay paint for shape review")
@@ -44,7 +45,7 @@ def main():
         bpy.ops.wm.save_as_mainfile(filepath=os.path.abspath(a.save), compress=True)
     if a.glb:
         from a3 import export
-        export.glb(os.path.abspath(a.glb))
+        export.glb(os.path.abspath(a.glb), draco=not a.no_draco)
     if a.views:
         render.studio()
         w, h = (int(v) for v in a.res.split("x"))

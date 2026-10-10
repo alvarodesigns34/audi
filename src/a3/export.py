@@ -2,7 +2,7 @@
 import bpy
 
 
-def glb(path, include_studio=False, draco=True):
+def glb(path, include_studio=False, draco=False):
     # hide helper collections (names starting with "_") from export
     hidden = []
     for col in bpy.data.collections:

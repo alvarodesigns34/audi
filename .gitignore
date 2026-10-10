@@ -2,3 +2,4 @@ out/
 __pycache__/
 *.pyc
 *.blend1
+reference/photos/
