@@ -335,12 +335,18 @@ def solidify(ob, thickness, offset=-1.0, apply=True, even=True, rim=True):
 
 
 def boolean(ob, cutter, operation="DIFFERENCE", apply=True, solver="EXACT",
-            delete_cutter=True, hole_tolerant=False):
+            delete_cutter=True, hole_tolerant=False, transfer_materials=False,
+            self_intersect=False):
     m = ob.modifiers.new("bool", "BOOLEAN")
     m.operation = operation
     m.solver = solver
+    if solver == "FLOAT":
+        m.double_threshold = 1e-6
     if solver == "EXACT":
         m.use_hole_tolerant = hole_tolerant
+        m.use_self = self_intersect
+        if transfer_materials:
+            m.material_mode = "TRANSFER"
     if isinstance(cutter, bpy.types.Collection):
         m.operand_type = "COLLECTION"
         m.collection = cutter

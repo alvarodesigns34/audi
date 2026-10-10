@@ -1,0 +1,216 @@
+"""Openings and shut lines cut into the body shell.
+
+All outlines are in millimetres in a principal projection plane and were
+digitised from calibrated reference photographs (tools/camera_match.py,
+tools/backproject.py) - status E (estimated, +-20..40 mm) unless noted.
+
+Each outline becomes a prism ("cutter") extruded along the projection axis
+over a limited range, so it only touches the intended part of the skin.
+"""
+from __future__ import annotations
+
+import numpy as np
+
+from ..core import mesh
+from ..core.curves import catmull_rom, rounded_polygon
+
+GAP = 4.0  # mm, typical 8V shut-line gap (3.5-4.5)
+
+
+# --------------------------------------------------------------------------
+# Outlines (mm)
+# --------------------------------------------------------------------------
+
+# Side daylight opening (both door windows + quarter light), XZ plane.
+# Starts behind the mirror sail, runs along the belt, up the quarter-light tip,
+# along the glass top to the A-pillar and down the A-pillar.
+DLO_SIDE = [
+    (-640, 928), (-1000, 946), (-1500, 972), (-2100, 1002), (-2700, 1034),
+    (-2905, 1041), (-2935, 1048), (-2900, 1092), (-2850, 1170), (-2790, 1240),
+    (-2720, 1292), (-2600, 1320), (-2250, 1342), (-1600, 1338), (-1250, 1322),
+    (-1110, 1304), (-960, 1238), (-820, 1160), (-700, 1082), (-655, 1010),
+]
+# Mirror sail (black triangle at the front of the front door window)
+SAIL = [(-505, 918), (-640, 928), (-655, 1010), (-700, 1082), (-560, 990)]
+
+# B-pillar applique (between the two door windows), C-pillar divider
+B_PILLAR = [(-1495, 950), (-1565, 950), (-1590, 1345), (-1520, 1345)]
+C_PILLAR = [(-2495, 1010), (-2530, 1010), (-2400, 1345), (-2365, 1345)]
+
+# Door shut lines (side view polylines)
+FRONT_DOOR_FRONT = [(-468, 925), (-462, 700), (-455, 450), (-450, 282)]
+DOOR_BOTTOM = [(-440, 282), (-1000, 284), (-1500, 286), (-2000, 288), (-2195, 288)]
+B_GAP = [(-1512, 975), (-1508, 600), (-1502, 286)]
+REAR_DOOR_REAR = [(-2505, 1022), (-2470, 975), (-2430, 925), (-2335, 810),
+                  (-2250, 700), (-2212, 620), (-2192, 450), (-2185, 288)]
+FRONT_BUMPER_SPLIT = [(402, 585), (380, 545), (355, 500), (335, 455)]
+REAR_BUMPER_SPLIT = [(-3260, 830), (-3150, 735), (-3060, 640), (-2995, 540), (-2975, 470)]
+
+# Fuel filler flap: right-hand side (-Y), rounded rectangle (x, z centre)
+FUEL_DOOR = dict(cx=-2660, cz=900, w=180, h=112, r=26)
+
+# Hood shut line along the fender (top view, x/y), both sides
+HOOD_SIDE = [(-380, 712), (-250, 752), (-50, 790), (150, 806), (350, 806),
+             (480, 790), (560, 760)]
+# Hood leading edge shut line (front view, y/z) - just under the edge
+HOOD_FRONT = [(0, 738), (300, 737), (500, 735), (620, 742), (700, 758)]
+
+# Tailgate outline (rear view, y/z), one side, from top to centre bottom
+TAILGATE = [(545, 1300), (560, 1150), (575, 1030), (600, 950), (615, 885),
+            (600, 815), (565, 745), (520, 700), (380, 690), (0, 688)]
+
+# Windscreen (top view x/y outline, one side, base -> pillar -> header)
+WINDSCREEN = [(-345, 0), (-360, 300), (-400, 560), (-460, 690), (-1180, 585),
+              (-1280, 540), (-1310, 300), (-1318, 0)]
+# Rear window (top view)
+REAR_WINDOW = [(-3175, 0), (-3170, 300), (-3160, 470), (-3200, 520),
+               (-3335, 505), (-3352, 300), (-3356, 0)]
+
+# Wheel arch openings: circle centre z and radius (E, from photos)
+ARCH_CZ = 270
+ARCH_R = 385
+
+
+# --------------------------------------------------------------------------
+# Geometry builders
+# --------------------------------------------------------------------------
+
+def _mm(p):
+    return np.asarray(p, float) * 1e-3
+
+
+def thick_polyline(pts, width):
+    """Closed 2D polygon around an open polyline (constant width)."""
+    p = np.asarray(pts, float)
+    n = len(p)
+    left, right = [], []
+    for i in range(n):
+        a = p[max(i - 1, 0)]
+        b = p[min(i + 1, n - 1)]
+        t = b - a
+        t /= np.linalg.norm(t)
+        nrm = np.array([-t[1], t[0]])
+        left.append(p[i] + nrm * width / 2)
+        right.append(p[i] - nrm * width / 2)
+    # extend the ends slightly so cuts run out cleanly
+    return np.array(left + right[::-1])
+
+
+def annulus_prism(name, outer, inner, y0, depth, col, material=None):
+    """Closed ring-shaped prism (outline band) in the XZ plane along Y."""
+    outer = np.asarray(outer, float)
+    inner = np.asarray(inner, float)
+    n = len(outer)
+    verts = []
+    for y in (y0, y0 + depth):
+        verts += [(a, y, b) for a, b in outer]
+        verts += [(a, y, b) for a, b in inner]
+    o0, i0, o1, i1 = 0, n, 2 * n, 3 * n
+    faces = []
+    for k in range(n):
+        j = (k + 1) % n
+        faces.append((o0 + k, o0 + j, i0 + j, i0 + k))        # bottom
+        faces.append((o1 + k, i1 + k, i1 + j, o1 + j))        # top
+        faces.append((o0 + k, o1 + k, o1 + j, o0 + j))        # outer wall
+        faces.append((i0 + k, i0 + j, i1 + j, i1 + k))        # inner wall
+    ob = mesh.object_from_pydata(name, verts, faces, col, material, smooth=False)
+    mesh.recalc_normals(ob)
+    return ob
+
+
+def mirror_outline(half, axis=1):
+    """Make a full symmetric outline from a half outline ending on the axis."""
+    h = np.asarray(half, float)
+    m = h[::-1].copy()
+    m[:, axis] *= -1
+    full = np.vstack([h, m[1:-1]]) if abs(h[0, axis]) < 1e-9 and abs(h[-1, axis]) < 1e-9 \
+        else np.vstack([h, m])
+    return full
+
+
+def side_prism(name, poly_mm, y0, y1, col, both=True, material=None):
+    """Prism of an XZ outline extruded along Y between y0 and y1 (m, >0)."""
+    p = _mm(poly_mm)
+    obs = [mesh.extrude_polygon(name + ".L", p, y1 - y0, plane="XZ", offset=y0,
+                                collection=col, material=material)]
+    if both:
+        obs.append(mesh.extrude_polygon(name + ".R", p, y1 - y0, plane="XZ", offset=-y1,
+                                        collection=col, material=material))
+    return obs
+
+
+def top_prism(name, poly_mm, z0, z1, col, material=None):
+    return mesh.extrude_polygon(name, _mm(poly_mm), z1 - z0, plane="XY", offset=z0,
+                                collection=col, material=material)
+
+
+def rear_prism(name, poly_mm, x0, x1, col, material=None):
+    return mesh.extrude_polygon(name, _mm(poly_mm), x1 - x0, plane="YZ", offset=x0,
+                                collection=col, material=material)
+
+
+def arch_cutter(name, xc, col, material=None, y0=0.55, y1=1.2):
+    obs = []
+    for side in (1, -1):
+        ob = mesh.revolve(name + (".L" if side > 0 else ".R"),
+                          np.array([[ARCH_R * 1e-3, 0.0], [ARCH_R * 1e-3, y1 - y0]]),
+                          segments=96, axis="Y",
+                          center=(xc, y0 if side > 0 else -y1, ARCH_CZ * 1e-3),
+                          collection=col, material=material, smooth=False)
+        # cap the cylinder into a closed solid
+        import bmesh
+        bm = bmesh.new()
+        bm.from_mesh(ob.data)
+        bmesh.ops.holes_fill(bm, edges=bm.edges, sides=0)
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        bm.to_mesh(ob.data)
+        bm.free()
+        obs.append(ob)
+    return obs
+
+
+def window_cutters(col, material=None):
+    obs = []
+    obs += side_prism("Cut_DLO", DLO_SIDE, 0.55, 1.2, col, material=material)
+    obs += side_prism("Cut_Sail", SAIL, 0.6, 1.2, col, material=material)
+    ws = mirror_outline(WINDSCREEN)
+    obs.append(top_prism("Cut_Windscreen", ws, 0.90, 1.60, col, material=material))
+    rw = mirror_outline(REAR_WINDOW)
+    obs.append(top_prism("Cut_RearWindow", rw, 0.98, 1.50, col, material=material))
+    return obs
+
+
+def gap_cutters(col, material=None):
+    g = GAP
+    obs = []
+    for nm, line in (("FD_Front", FRONT_DOOR_FRONT), ("Door_Bottom", DOOR_BOTTOM),
+                     ("B_Gap", B_GAP), ("RD_Rear", REAR_DOOR_REAR),
+                     ("FB_Split", FRONT_BUMPER_SPLIT), ("RB_Split", REAR_BUMPER_SPLIT)):
+        obs += side_prism("Gap_" + nm, thick_polyline(catmull_rom(line, 6), g), 0.62, 1.2,
+                          col, material=material)
+    # fuel door (right side only)
+    fd = FUEL_DOOR
+    rect = [(fd["cx"] - fd["w"] / 2, fd["cz"] - fd["h"] / 2), (fd["cx"] + fd["w"] / 2, fd["cz"] - fd["h"] / 2),
+            (fd["cx"] + fd["w"] / 2, fd["cz"] + fd["h"] / 2), (fd["cx"] - fd["w"] / 2, fd["cz"] + fd["h"] / 2)]
+    outer = rounded_polygon(rect, fd["r"], 8)
+    inner = mesh.polyline_offset_2d(outer, -g if mesh.polygon_area(outer) > 0 else g, closed=True)
+    obs.append(annulus_prism("Gap_FuelDoor", _mm(outer), _mm(inner), -1.2, 0.55, col,
+                             material=material))
+    # hood side lines (top view) both sides
+    hs = catmull_rom(HOOD_SIDE, 6)
+    for side in (1, -1):
+        p = hs.copy()
+        p[:, 1] *= side
+        obs.append(top_prism("Gap_HoodSide" + (".L" if side > 0 else ".R"),
+                             thick_polyline(p, g), 0.60, 1.05, col, material=material))
+    # hood front (front view y/z)
+    half = np.asarray(HOOD_FRONT, float)
+    full = np.vstack([half[::-1] * [-1, 1], half[1:]])
+    obs.append(rear_prism("Gap_HoodFront", thick_polyline(catmull_rom(full, 6), g),
+                          0.60, 1.00, col, material=material))
+    # tailgate (rear view)
+    tg = np.asarray(TAILGATE, float)
+    full = np.vstack([tg, (tg[::-1] * [-1, 1])[1:]])
+    obs.append(rear_prism("Gap_Tailgate", thick_polyline(catmull_rom(full, 6), g),
+                          -3.60, -3.05, col, material=material))
+    return obs
