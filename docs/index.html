@@ -264,7 +264,6 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
-import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 const params = new URLSearchParams(location.search);
 const MODEL = params.get('model') || 'models/a3_sportback_8v.glb';
@@ -275,14 +274,40 @@ const canvas = $('c');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.0;
+renderer.toneMappingExposure = 0.9;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const scene = new THREE.Scene();
 const BG_DAY = new THREE.Color(0x1b1c1e), BG_NIGHT = new THREE.Color(0x07080a);
 scene.background = BG_DAY.clone();
+// studio environment: gradient dome (bright horizon band, white top, dark
+// floor) + softboxes, so metals (diamond-cut wheel faces, chrome) and the
+// paint get readable reflections from every direction
+function studioEnv() {
+  const env = new THREE.Scene();
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(50, 64, 32), new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false,
+    vertexShader: 'varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }',
+    fragmentShader: `varying vec3 vP;
+      void main(){ float h = normalize(vP).y;
+        vec3 floorC = vec3(.10,.10,.11), hor = vec3(.85,.86,.88), top = vec3(.55,.56,.58);
+        vec3 c = h < 0. ? mix(hor * .55, floorC, smoothstep(0., -.35, h)) : mix(hor, top, smoothstep(0., .6, h));
+        gl_FragColor = vec4(c, 1.); }`
+  }));
+  env.add(dome);
+  const box = (w, h, x, y, z, ry, k = 4) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(k, k, k), side: THREE.DoubleSide }));
+    m.position.set(x, y, z); m.lookAt(0, 0, 0); env.add(m);
+  };
+  box(30, 8, 0, 30, 0, 0, 5);          // overhead softbox
+  box(22, 3, 0, 6, 25, 0, 3);          // side strips
+  box(22, 3, 0, 6, -25, 0, 3);
+  box(8, 6, 25, 5, 0, 0, 2.2);         // front / rear fills
+  box(8, 6, -25, 5, 0, 0, 2.0);
+  return env;
+}
 const pmrem = new THREE.PMREMGenerator(renderer);
-const envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+const envTex = pmrem.fromScene(studioEnv(), 0.02).texture;
 scene.environment = envTex;
 
 const camera = new THREE.PerspectiveCamera(32, 1, 0.02, 200);
@@ -308,8 +333,8 @@ const shadowFloor = new THREE.Mesh(new THREE.PlaneGeometry(14, 10), new THREE.Sh
 shadowFloor.rotation.x = -Math.PI / 2; shadowFloor.position.set(-1.29, 0.0005, 0);
 shadowFloor.receiveShadow = true; scene.add(shadowFloor);
 
-const hemi = new THREE.HemisphereLight(0xffffff, 0x303030, 0.35); scene.add(hemi);
-const sun = new THREE.DirectionalLight(0xffffff, 1.4);
+const hemi = new THREE.HemisphereLight(0xffffff, 0x303030, 0.15); scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xffffff, 1.1);
 sun.position.set(1.5, 9, 3.5); sun.target.position.set(-1.29, 0, 0);
 sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0004;
 sun.shadow.normalBias = 0.02;
@@ -424,7 +449,7 @@ $('sw-night').onclick = (e) => {
   night = !night; setSwitch(e.currentTarget, night);
   scene.background.copy(night ? BG_NIGHT : BG_DAY);
   scene.environmentIntensity = night ? 0.15 : 1.0;
-  sun.intensity = night ? 0.12 : 1.4; hemi.intensity = night ? 0.05 : 0.35;
+  sun.intensity = night ? 0.12 : 1.1; hemi.intensity = night ? 0.05 : 0.15;
   floorMat.uniforms.night.value = night ? 1 : 0;
   if (night && !lightsOn) $('sw-lights').click(); else applyLights();
 };
@@ -600,6 +625,9 @@ loader.load(MODEL, (gltf) => {
     const mats = Array.isArray(o.material) ? o.material : [o.material];
     for (const m of mats) {
       if (!m) continue;
+      // anisotropy needs UV-derived tangents: turned surfaces without UVs
+      // (diamond-cut wheel faces) would render black
+      if (m.anisotropy > 0 && !o.geometry.attributes.uv) m.anisotropy = 0;
       if (m.name === 'Paint_Body') paintMats.add(m);
       if (/^LED_|Gauge_Marks|Needle|Screen_UI|Screen_MMI|Cluster_|Climate_LCD|Lamp_Lens_Red/.test(m.name) && m.emissive) {
         if (!m.userData.reg) {
@@ -632,7 +660,7 @@ loader.load(MODEL, (gltf) => {
   if (!isNarrow()) $('panel').classList.remove('hidden');
   resize();
   dirty = true;
-  window.__ready = true;
+  window.__car = car; window.__ready = true;
 }, (e) => {
   const mb = (v) => (v / 1048576).toFixed(1);
   if (e.total) {

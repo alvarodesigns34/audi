@@ -1,5 +1,10 @@
 # Prompt de continuación (pegar en una sesión nueva)
 
+Estado actual: v0.2 (ver `docs/STATUS.md`). Herramientas clave añadidas en v0.2:
+`tools/make_match.py` (calibración por contorno de llanta), `tools/triangulate.py --joint`,
+`tools/silhouette.py --outlines --lines`, `tools/skin_preview.py`, `tools/panel_debug.py`,
+`tools/publish.sh`. Puntos medidos en `reference/features.json` y `reference/side_points.txt`.
+
 ```text
 Continúa el proyecto "Audi A3 Sportback 8V — Digital Twin" en el repositorio `audi`
 (rama `main`). Es la réplica 3D procedural de MI coche: Audi A3 Sportback 8V pre-restyling

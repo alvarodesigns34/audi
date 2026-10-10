@@ -28,6 +28,16 @@ def build(ctx):            # ctx: a3.build.BuildContext
   textura de verdad (grano de cuero, perforado, tejidos, plásticos texturados, rotulación de
   botones, gráficos de pantallas, marcaje del neumático, escamas del metalizado): generadas por
   código (procedurales y horneadas a imagen en `assets/textures/`) para que viajen en el GLB.
+- Texturas: `core/textures.py` las genera (enlosables, semillas fijas) en `out/textures/`;
+  un material las usa con `principled(..., tex="leather")` y guarda su tamaño de baldosa en
+  `uv_tile`; `core/uv.py` proyecta UV por caja en metros/baldosa al final del montaje. Las
+  imágenes de contenido (pantallas) usan UV planares asignadas por la pieza (`uv.set_planar`).
+  Solo nodos que entiende el exportador glTF (imagen → Normal Map, imagen → Separate Color G
+  → Roughness).
+- Montaje: cada objeto pertenece a un grupo de `groups.RULES` (vacío `G_<grupo>` con extras
+  `group`, `label`, `explode`) y lleva una etiqueta en español (`groups.LABELS`). Un objeto
+  nuevo sin grupo se lista en el log de construcción (`[groups] ... without group`).
+- No nombrar objetos definitivos con prefijo `tmp`.
 - Cotas en el código en mm convertidas con `spec.m()` o escritas en metros con comentario.
 - Cada cota relevante: comentario con su origen (C confirmado / S fuente secundaria / E estimada).
 

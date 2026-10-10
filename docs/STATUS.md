@@ -1,72 +1,96 @@
 # Estado del gemelo digital
 
-Última actualización: 2026-10-10 (v0.1, primera versión completa: exterior + interior + ruedas).
-Modelo publicado: `docs/models/a3_sportback_8v.glb` (32 MB, sin compresión ni simplificación,
-1,7 M triángulos, 608 objetos) y `docs/models/a3_sportback_8v.usdz` (40 MB, iPhone/iPad).
+Última actualización: 2026-10-10 (**v0.2**).
+Publicado: `docs/models/a3_sportback_8v.glb` (calidad completa, sin compresión ni
+simplificación, con texturas y metadatos de despiece) y `docs/models/a3_sportback_8v.usdz`
+(iPhone/iPad). Visor: `docs/index.html`.
+
+## Qué cambió en v0.2
+
+**Validación fotogramétrica (nueva base de medida)**
+* Calibración de cámara por **contorno completo de la llanta** detectado automáticamente
+  (`tools/rim_edge.py`, `tools/make_match.py`): error medio < 1 px en las 5 fotos (antes 4–7 px).
+  Dos fotos nuevas calibradas (`yellow`, `yellow_rear`: S line amarillo, delantera y trasera).
+* **Triangulación multi-foto** de puntos característicos (`tools/triangulate.py`), con ajuste
+  conjunto de la altura de carrocería de cada coche (`--joint`) y comprobación epipolar
+  (`tools/epipolar.py`) y de reproyección (`tools/reproj_check.py`).
+* `tools/silhouette.py`: silueta y contornos de aperturas del modelo proyectados sobre cada foto;
+  `tools/skin_preview.py`: arcilla oscura brillante para revisar superficies.
+
+**Carrocería**
+* Frontal re-medido: todo el frontal estaba ~40 mm bajo. Parrilla, tomas S line, antiniebla,
+  lavafaros, aros y matrícula recolocados; **faro envolvente** definido en 3D (envuelve la esquina
+  desde el chaflán de la parrilla hasta la aleta) y cortado en dirección oblicua.
+* Línea de cintura 25–30 mm más baja, pilar A más tumbado, ventanillas, pilar B/C, triángulo del
+  retrovisor y líneas de puertas re-digitalizados en la foto lateral (cruzados con la trasera ±3 px).
+* Pasos de rueda circulares centrados en la rueda (R 362/352 mm medidos en la máscara de la foto).
+* **Portón**: la cara del portón estaba 60–90 mm demasiado atrás (triangulado: aros, portamatrícula,
+  borde inferior); ahora el paragolpes forma el escalón real bajo el portón. Luneta mucho más ancha
+  (esquinas inferiores a |y| 0,69 m), pilotos 20–30 mm más bajos, salidas de escape en el extremo
+  exterior del difusor (antes demasiado hacia el centro).
+* Nervios en V del capó, ligera aleta sobre las ruedas, banda horizontal del portón
+  (`body/features.py`), superficie bajo la línea tornado ligeramente cóncava y hombro menos abombado.
+* Juntas que faltaban (aleta–pilar A, borde trasero del capó, techo–portón, faldón) y junta del portón
+  con anchura constante medida sobre la superficie.
+* **Paneles reales**: el casco se divide en capó, rejilla del parabrisas, paragolpes, aletas, 4 puertas,
+  faldones, portón y casco; lunas laterales divididas en puertas y custodias.
+* Alerón S line más fino, con extremos caídos y cara inferior negra.
+
+**Piezas nuevas**: suspensión McPherson delantera y multibrazo trasera, dirección, palieres,
+subchasis, travesaño de impacto; escape completo (FAP, flexible, silenciadores, soportes, pantallas
+térmicas); depósito y protecciones de bajos; **motor 2.0 TDI EA288** con cambio DQ250, radiadores y
+electroventiladores, batería, filtro de aire, depósitos; maletero.
+
+**Materiales**: texturas generadas por código y horneadas a imagen (cuero con grano, cuero perforado,
+plásticos granulados, moqueta, tejido de techo, cinta de cinturón, aluminio cepillado, caucho, disco,
+escamas del metalizado) con UV en metros; pantalla MMI con navegación y FIS como imágenes.
+
+**Visor**: HUD (nombre de pieza al pasar/tocar, ficha de la pieza, encuadrar, aislar grupo), regla de
+**vista despiezada** (45 grupos con vector por grupo en los extras glTF), lista de grupos con
+visibilidad, ficha técnica con fuentes C/S/E, cámaras, 6 pinturas, luces, noche, lunas oscurecidas,
+renderizado bajo demanda (batería del iPad), disposición táctil/vertical.
 
 ## Precisión por zona
 
-| Zona | Base | Precisión estimada | Comentario |
-|---|---|---|---|
-| Dimensiones globales (L, A, H, batalla, vías, voladizos) | Ficha oficial / fuentes secundarias | ±5 mm | C/S en `spec.py` |
-| Silueta lateral, techo, extremos | 4 fotos calibradas (camera matching) | ±20–40 mm | Contrastado con superposiciones |
-| Líneas tornado y de cintura | Fotos calibradas | ±20–30 mm | |
-| Puertas, pilares B/C, tiradores, tapa combustible | Retroproyección foto lateral + 3/4 | ±30 mm | Las dos fotos difieren ~100 mm en x en algunos puntos; se priorizó la lateral |
-| Parrilla, faros, tomas, pilotos, escape | Trazado de rayos desde fotos 3/4 calibradas | ±15–30 mm | |
-| Llanta 5-arm rotor | Medición angular sobre foto rectificada | Forma S/E | 8J×18 ET46 (C) |
-| Neumático 225/40 R18 | ETRTO | C | Dibujo de banda genérico (sin marca) |
-| Frenos | Catálogo (312×25 / 272×10) | S/E | Pinza delante del disco según fotos |
-| Interior | Fotos 8V pre-restyling + envolvente medida de la carrocería | E | Punto H y volante estimados |
+| Zona | Base | Precisión estimada |
+|---|---|---|
+| Dimensiones globales | Ficha oficial / fuentes secundarias | ±5 mm (C/S) |
+| Cámaras de las fotos | Contorno de llanta, 5 fotos | < 1 px rms |
+| Frontal (parrilla, faros, tomas) | Triangulación 2 fotos + ray casting | ±10–20 mm |
+| Laterales (ventanillas, puertas, pilares) | Foto lateral + 3/4 trasera | ±10–20 mm |
+| Zaga (portón, pilotos, matrícula, escape) | Triangulación 2 fotos | ±15–25 mm |
+| Superficies entre líneas (abombados) | Estimadas, revisadas en arcilla | E |
+| Llanta 5-arm rotor / neumático | Foto rectificada / ETRTO | S/E / C |
+| Mecánica (suspensión, motor, escape) | Disposición MQB típica | E (orientativa) |
+| Interior | Fotos 8V + envolvente medida | E |
 
 ## Errores y carencias conocidos (por prioridad)
 
-**Carrocería / proporciones**
-1. Superficies demasiado "blandas": falta la nitidez de la línea *tornado* (radio real ~3–5 mm),
-   el hombro sobre las ruedas y la superficie cóncava bajo la línea.
-2. Capó: faltan los dos nervios en V que nacen de las esquinas de la parrilla; el borde
-   delantero del capó y la junta con faros/parrilla son aproximados.
-3. Pasos de rueda: corte circular simple; faltan el labio enrollado, la leve aleta del 8V y la
-   forma real (ligeramente achatada); hueco rueda-aleta a revisar con fotos.
-4. Frontal visto de frente: el paragolpes inferior resulta demasiado ancho/abombado; el faro es
-   algo bajo y estrecho comparado con la foto; la parrilla debe sobresalir más (marco cromado
-   con relieve) y la toma inferior S line tiene detalles simplificados.
-5. Zaga: luneta y montantes D aproximados; alerón de techo S line demasiado grueso y largo;
-   portón sin el nervio horizontal sobre la matrícula ni el rebaje de matrícula; pilotos con
-   gráfica interior genérica (falta la firma LED real del pre-restyling).
-6. Retrovisores: forma de carcasa no fiel (la tapa superior y la base negra no coinciden con
-   la foto `sline_front.jpg`, zona x≈1180–1320 px).
-7. Cristales: cuarto cristal trasero y marco DLO simplificados; sin tiras/canales de goma reales.
-8. Faldones S line, molduras de puertas inferiores y emblemas (S line, A3, TDI) básicos o ausentes.
-9. Bajos del coche: bandeja plana; faltan suspensión visible, escape completo, depósito, etc.
-10. Hueco motor cerrado con paneles oscuros (no hay motor 2.0 TDI modelado).
-
-**Ruedas**: buenas; revisar alojamientos de tornillos (más redondeados en la foto) y añadir
-suspensión visible tras la llanta.
-
-**Interior**: correcto en distribución, pero con mucha geometría genérica: salpicadero sin las
-superficies reales del 8V (ala y visera), asientos S line simplificados, sin maletero, sin
-pasos de rueda traseros interiores, cinturones básicos, botones sin rotulación, pantallas con
-gráficos muy simples.
-
-**Materiales**: sin texturas reales (solo ruido procedural para el grano). Faltan: grano de
-cuero y perforado, tejido de techo, plásticos texturados, escamas del metalizado, textos del
-neumático por textura/normal map, gráficos de pantallas y cuadro.
+1. **Línea tornado**: tiene la rotura de tangente correcta, pero el sombreado suave la redondea más
+   que el radio real (~3–5 mm); falta concentrar la malla junto a la línea.
+2. **Interior**: salpicadero y asientos siguen siendo aproximados (forma "ala" del salpicadero 8V,
+   costuras y laterales de asientos S line, paneles de puerta).
+3. Puntos de la zaga con la foto amarilla discrepan en los sensores de aparcamiento (posible
+   correspondencia errónea); el resto del portón es coherente entre fotos.
+4. Retrovisores: forma general correcta en la superposición; faltan detalles (junta tapa/base, cámara).
+5. Faros/pilotos: estructura interna aún esquemática (firma LED del piloto simplificada).
+6. Mecánica estimada (no hay fotos de bajos/vano del 8V en el material de referencia).
+7. Sin emblemas traseros de modelo (las dos unidades de referencia no los llevan).
 
 ## Decisiones tomadas (revisables con el propietario)
 
-* **Color**: *Ibisweiß* (blanco sólido, T9). Alternativa: *Gletscherweiß metallic* (`--paint glacier_white`).
-* **Parrilla S line**: marco cromado, lamas horizontales negro brillante y nervios verticales.
-* **Molduras de ventanas**: negras (de serie). Configurable (`body/glass.py`, `WINDOW_TRIM`).
-* **Matrícula**: genérica española `1234 ABC`.
-* **Lunas**: sin oscurecer. **Techo**: chapa pintada, sin panorámico ni barras.
-* **Escape**: doble salida cromada a la izquierda, integrada en el difusor S line.
-* **Neumático**: aplastamiento por carga como *shape key* "Loaded".
+* **Color**: Blanco Ibis (sólido). Alternativa: Blanco Glaciar metalizado (`--paint glacier_white`,
+  con escamas). En el visor se puede cambiar.
+* **Parrilla S line**: marco cromado. **Molduras de ventanas**: negras. **Lunas** sin oscurecer
+  (el visor permite oscurecer las traseras). **Techo** de chapa, sin barras ni panorámico.
+* **Escape**: doble salida a la izquierda (2.0 TDI S line). **Matrícula** genérica `1234 ABC`.
+* **Suspensión trasera**: multibrazo (versiones de 110 kW, S/E).
 
 ## Preguntas abiertas al propietario
 
-1. El primer mensaje se cortó en "IMPORTANTE: el vehículo debe corres…" (¿corresponder a…?).
+1. El primer mensaje se cortó en "IMPORTANTE: el vehículo debe corres…".
 2. ¿Blanco Ibis (sólido) o Glaciar metalizado?
 3. ¿Marco de parrilla cromado o negro? ¿Molduras de ventanas negras o aluminio?
-4. ¿Cristales traseros oscurecidos? ¿Techo panorámico / barras?
-5. Fotos del coche real (4 ortogonales + 2 a 3/4 + interior) para calibrarlas con
-   `tools/camera_match.py` y ajustar el modelo a su unidad.
+4. ¿Lunas traseras oscurecidas? ¿Techo panorámico o barras?
+5. Fotos de tu coche (4 ortogonales + 2 a 3/4 + interior, ruedas completas en cuadro) para
+   calibrarlas con `tools/make_match.py` y ajustar el modelo a tu unidad.

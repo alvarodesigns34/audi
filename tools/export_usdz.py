@@ -12,7 +12,8 @@ for col in list(bpy.data.collections):
 out=sys.argv[1]
 bpy.ops.wm.usd_export(filepath=out, selected_objects_only=False,
     export_materials=True, generate_preview_surface=True,
-    export_uvmaps=False, export_lights=False, export_cameras=False, export_normals=True, export_animation=False, export_shapekeys=False,
+    export_uvmaps=True, rename_uvmaps=True, export_textures_mode="NEW", overwrite_textures=True,
+    usdz_downscale_size="KEEP", export_lights=False, export_cameras=False, export_normals=True, export_animation=False, export_shapekeys=False,
     convert_orientation=True, export_global_forward_selection="NEGATIVE_Z", export_global_up_selection="Y")
 print("LOOPS", sum(len(o.data.loops) for o in bpy.data.objects if o.type=="MESH"))
 print("SIZE", os.path.getsize(out)/1e6, "MB")
