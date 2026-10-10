@@ -437,5 +437,56 @@
    447,
    434
   ]
+ },
+ "plate_holder_tl": {
+  "sline_rear": [
+   1502,
+   422
+  ],
+  "yellow_rear!far": [
+   229,
+   544
+  ]
+ },
+ "plate_holder_tr": {
+  "sline_rear!far": [
+   1700,
+   411
+  ],
+  "yellow_rear": [
+   456,
+   578
+  ]
+ },
+ "plate_holder_bl": {
+  "sline_rear": [
+   1513,
+   500
+  ],
+  "yellow_rear!far": [
+   227,
+   620
+  ]
+ },
+ "plate_holder_br": {
+  "sline_rear!far": [
+   1711,
+   482
+  ],
+  "yellow_rear": [
+   447,
+   660
+  ]
+ },
+ "tg_bottom_centre": {
+  "sline_rear": [
+   1610,
+   540
+  ],
+  "yellow_rear": [
+   322,
+   688
+  ],
+  "_centre": true
  }
 }
