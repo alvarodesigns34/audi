@@ -31,6 +31,7 @@ def main():
     ap.add_argument("--tag", default="")
     ap.add_argument("--strict", action="store_true")
     ap.add_argument("--clay", action="store_true", help="grey clay paint for shape review")
+    ap.add_argument("--hide", default="", help="regex of object names hidden in renders")
     ap.add_argument("--explode", type=float, default=0.0, help="exploded view factor for renders")
     a = ap.parse_args()
     parts = [p for p in a.parts.split(",") if p] or None
@@ -54,7 +55,12 @@ def main():
                 if ob.name.startswith("G_") and "explode" in ob:
                     gx, gy, gz = ob["explode"]
                     ob.location = Vector((gx, -gz, gy)) * a.explode
-        render.studio()
+        if a.hide:
+            import re
+            for ob in bpy.data.objects:
+                if re.search(a.hide, ob.name):
+                    ob.hide_render = True
+        render.studio(floor=not a.hide or "Floor" not in a.hide)
         w, h = (int(v) for v in a.res.split("x"))
         for v in a.views.split(","):
             p = os.path.join(a.out, f"{a.tag}{v}.png")

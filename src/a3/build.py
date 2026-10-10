@@ -24,7 +24,10 @@ PARTS = [
     ("mirrors", "a3.exterior.mirrors"),
     ("wheels", "a3.wheels.assembly"),
     ("underbody", "a3.exterior.underbody"),
+    ("chassis", "a3.exterior.chassis"),
+    ("engine", "a3.exterior.engine"),
     ("interior", "a3.interior.assembly"),
+    ("boot", "a3.interior.boot"),
     ("assembly", "a3.groups"),          # panels, exploded-view groups, labels
 ]
 

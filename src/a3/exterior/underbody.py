@@ -41,7 +41,5 @@ def build(ctx):
     for xc, nm in ((0.0, "F"), (m(-2636), "R")):
         for side, sfx in ((1, "L"), (-1, "R")):
             _liner(f"Arch_Liner_{nm}{sfx}", xc, side, mat)
-    # underbody trays between and around the axles
-    mesh.extrude_polygon("Underbody_Tray", [(-3.00, -0.60), (0.65, -0.60), (0.65, 0.60),
-                                            (-3.00, 0.60)], 0.004, plane="XY", offset=0.142,
-                         collection=COL, material=under)
+    # underbody trays: exterior/chassis.py (engine undertray + floor trays,
+    # with the exhaust tunnel left open)

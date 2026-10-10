@@ -330,4 +330,4 @@ def build(ctx):
     _plate(ctx, surf)
     _intakes(ctx, surf)
     _lip(ctx, surf)
-    _engine_bay_closure(ctx)
+    # the engine bay is modelled by exterior/engine.py
