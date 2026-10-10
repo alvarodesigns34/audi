@@ -10,7 +10,7 @@ from mathutils import Vector
 from . import scene as sc
 
 
-def studio(floor=True, world_strength=0.6, floor_color=(0.55, 0.55, 0.56)):
+def studio(floor=True, world_strength=0.35, floor_color=(0.55, 0.55, 0.56)):
     scn = bpy.context.scene
     world = bpy.data.worlds.new("Studio") if not scn.world else scn.world
     scn.world = world
@@ -50,11 +50,11 @@ def studio(floor=True, world_strength=0.6, floor_color=(0.55, 0.55, 0.56)):
         col.objects.link(ob)
         return ob
 
-    area("Softbox_Top", (-1.3, 0, 6.0), (0, 0, 0), 7.0, 5200, 3.0)
-    area("Strip_L", (-1.3, 5.0, 2.2), (math.radians(70), 0, 0), 8.0, 1500, 0.8)
-    area("Strip_R", (-1.3, -5.0, 2.2), (math.radians(-70), 0, 0), 8.0, 1500, 0.8)
-    area("Fill_Front", (6.0, 0, 1.8), (0, math.radians(75), 0), 3.0, 700, 2.0)
-    area("Fill_Rear", (-8.5, 0, 1.8), (0, math.radians(-75), 0), 3.0, 600, 2.0)
+    area("Softbox_Top", (-1.3, 0, 6.0), (0, 0, 0), 7.0, 1400, 3.0)
+    area("Strip_L", (-1.3, 5.0, 2.2), (math.radians(70), 0, 0), 8.0, 450, 0.8)
+    area("Strip_R", (-1.3, -5.0, 2.2), (math.radians(-70), 0, 0), 8.0, 450, 0.8)
+    area("Fill_Front", (6.0, 0, 1.8), (0, math.radians(75), 0), 3.0, 220, 2.0)
+    area("Fill_Rear", (-8.5, 0, 1.8), (0, math.radians(-75), 0), 3.0, 200, 2.0)
 
     if floor:
         me = bpy.data.meshes.new("Floor")
@@ -93,13 +93,14 @@ VIEWS = {
     "front34": dict(loc=(CX + 6.2, 4.6, 1.55), target=(CX + 0.2, 0, 0.62), lens=55),
     "rear34": dict(loc=(CX - 6.2, 4.6, 1.75), target=(CX - 0.2, 0, 0.62), lens=55),
     "front34_r": dict(loc=(CX + 6.2, -4.6, 1.55), target=(CX + 0.2, 0, 0.62), lens=55),
+    "side_r": dict(loc=(CX, -30.0, 0.70), target=(CX, 0, 0.70), lens=50, ortho=4.9),
     "side": dict(loc=(CX, 30.0, 0.70), target=(CX, 0, 0.70), lens=50, ortho=4.9),
     "front": dict(loc=(30, 0, 0.70), target=(0, 0, 0.70), lens=50, ortho=2.3),
     "rear": dict(loc=(-30, 0, 0.70), target=(-3, 0, 0.70), lens=50, ortho=2.3),
     "top": dict(loc=(CX, 0, 30), target=(CX, 0, 0), lens=50, ortho=4.9),
     "wheel_fl": dict(loc=(0.0, 2.6, 0.32), target=(0, 0.75, 0.32), lens=50),
-    "cockpit": dict(loc=(-1.75, 0.37, 1.12), target=(-0.6, 0.15, 0.85), lens=24),
-    "interior_rear": dict(loc=(-2.9, 0.0, 1.20), target=(-0.8, 0.0, 0.80), lens=20),
+    "cockpit": dict(loc=(-1.75, 0.37, 1.12), target=(-0.6, 0.15, 0.85), lens=24, fill=True),
+    "interior_rear": dict(loc=(-2.9, 0.0, 1.20), target=(-0.8, 0.0, 0.80), lens=20, fill=True),
 }
 
 
@@ -107,7 +108,9 @@ def render(path, view="front34", res=(1600, 900), samples=64, engine="CYCLES",
            transparent=False, denoise=True, extra=None):
     scn = bpy.context.scene
     v = dict(VIEWS[view]) if isinstance(view, str) else dict(view)
+    fill = v.pop("fill", False)
     cam = camera("Cam_" + (view if isinstance(view, str) else "custom"), **v)
+    fills = cabin_fill() if fill else []
     scn.camera = cam
     scn.render.engine = engine
     scn.cycles.samples = samples
@@ -129,4 +132,26 @@ def render(path, view="front34", res=(1600, 900), samples=64, engine="CYCLES",
     scn.render.filepath = path
     bpy.ops.render.render(write_still=True)
     bpy.data.objects.remove(cam, do_unlink=True)
+    for ob in fills:
+        bpy.data.objects.remove(ob, do_unlink=True)
     return path
+
+
+def cabin_fill(strength=1.0):
+    """Soft area lights under the roof for interior views (the headliner and
+    the body shell block the studio softbox).  Temporary: removed after the
+    render.  Views opt in with ``fill=True``."""
+    col = sc.collection("_Studio")
+    out = []
+    for name, loc, size, energy in (("Fill_Cabin_F", (-1.45, 0.0, 1.24), (1.0, 1.1), 16.0),
+                                    ("Fill_Cabin_R", (-2.35, 0.0, 1.22), (0.8, 1.1), 10.0),
+                                    ("Fill_Cabin_Boot", (-3.05, 0.0, 1.20), (0.4, 0.9), 6.0)):
+        L = bpy.data.lights.new(name, "AREA")
+        L.shape = "RECTANGLE"
+        L.size, L.size_y = size
+        L.energy = energy * strength
+        ob = bpy.data.objects.new(name, L)
+        ob.location = loc
+        col.objects.link(ob)
+        out.append(ob)
+    return out

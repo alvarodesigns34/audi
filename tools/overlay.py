@@ -96,7 +96,7 @@ def main():
     mag = Image.new("RGBA", (W, H), (255, 0, 255, 255))
     comp.paste(mag, (0, 0), edge)
     if "body" in a.parts:
-        draw_lines(comp, x, (W, H))
+        draw_lines(comp, x, (W, H), side=1 if x[1] > 0 else -1)
     comp.convert("RGB").save(a.out)
     print("overlay", a.out)
 

@@ -7,7 +7,9 @@ import bmesh
 import bpy
 import numpy as np
 
-from ..core import mesh, scene
+import os
+
+from ..core import cache, mesh, scene
 from ..spec import m as mm
 from . import openings, surface
 
@@ -40,12 +42,36 @@ def skin_object(name="Body_Skin", spacing=0.012, collection="Exterior/Body",
     return ob, bl, grid
 
 
+def _remap_materials(ob):
+    for slot in ob.material_slots:
+        m = slot.material
+        if m and "." in m.name and m.name.rsplit(".", 1)[1].isdigit():
+            base = bpy.data.materials.get(m.name.rsplit(".", 1)[0])
+            if base:
+                slot.material = base
+
+
 def build(ctx):
     paint = ctx.mat("paint")
     dark = ctx.mat("gap")
+    here = os.path.dirname(os.path.abspath(__file__))
+    k = cache.key(*(os.path.join(here, f) for f in
+                    ("lines.py", "surface.py", "openings.py", "shell.py")))
+    ctx.data["body_lines"] = surface.BodyLines()
+    got = cache.load("body", k, {"Body_Shell", "Body_Skin_Reference"},
+                     lambda ob: scene.collection("_Construction" if "Reference" in ob.name
+                                                 else "Exterior/Body"))
+    if got:
+        for ob in got.values():
+            _remap_materials(ob)
+        ref = got["Body_Skin_Reference"]
+        ref.hide_render = True
+        ref.hide_set(True)
+        ctx.register("skin_ref", ref)
+        ctx.register("body_skin", got["Body_Shell"])
+        print("[body] shell loaded from cache")
+        return
     skin, bl, grid = skin_object(material=paint)
-    ctx.data["body_lines"] = bl
-    ctx.data["skin_grid"] = grid
 
     # untouched reference surface (glass panes, ray casting, trims)
     ref = skin.copy()
@@ -80,3 +106,4 @@ def build(ctx):
     skin.name = "Body_Shell"
     mesh.shade_smooth(skin, 28)
     ctx.register("body_skin", skin)
+    cache.save("body", k, [skin, ref])

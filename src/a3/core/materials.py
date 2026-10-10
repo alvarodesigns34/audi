@@ -34,7 +34,8 @@ def hex_rgba(h: str, alpha=1.0):
 def principled(name, color="#808080", metallic=0.0, roughness=0.5, coat=0.0,
                coat_rough=0.03, transmission=0.0, ior=1.45, alpha=1.0,
                emission=None, emission_strength=0.0, specular=0.5, sheen=0.0,
-               aniso=0.0, normal_noise=0.0, noise_scale=400.0, thin_film=0.0):
+               aniso=0.0, normal_noise=0.0, noise_scale=400.0, thin_film=0.0,
+               aniso_axis=None):
     if name in _CACHE and _CACHE[name].name in bpy.data.materials:
         return _CACHE[name]
     m = bpy.data.materials.new(name)
@@ -70,6 +71,13 @@ def principled(name, color="#808080", metallic=0.0, roughness=0.5, coat=0.0,
         inp["Sheen Weight"].default_value = sheen
     if aniso and "Anisotropic" in inp:
         inp["Anisotropic"].default_value = aniso
+        if aniso_axis and "Tangent" in inp:
+            # circumferential tangent about the object's local axis (turned /
+            # ground surfaces: diamond-cut wheel faces, brake discs)
+            tg = nt.nodes.new("ShaderNodeTangent")
+            tg.direction_type = "RADIAL"
+            tg.axis = aniso_axis
+            nt.links.new(tg.outputs["Tangent"], inp["Tangent"])
     if normal_noise > 0:
         # fine surface structure (leather grain, textured plastics)
         tex = nt.nodes.new("ShaderNodeTexNoise")
@@ -116,10 +124,13 @@ def get(key: str, paint="ibis_white"):
         "led_amber": lambda: principled("LED_Amber", "#C46800", emission="#FF8C00", emission_strength=0.0, roughness=0.3),
         # ---- wheels ----
         "wheel_black": lambda: principled("Wheel_Black_Gloss", "#0B0B0C", metallic=0.2, roughness=0.18, coat=1.0, coat_rough=0.04),
-        "wheel_diamond_cut": lambda: principled("Wheel_Diamond_Cut", "#D4D6D8", metallic=1.0, roughness=0.12, aniso=0.8, coat=1.0, coat_rough=0.03),
+        "wheel_diamond_cut": lambda: principled("Wheel_Diamond_Cut", "#D4D6D8", metallic=1.0, roughness=0.24, aniso=0.85, coat=1.0, coat_rough=0.03, aniso_axis="Y"),
+        "wheel_cap": lambda: principled("Wheel_Cap_Grey", "#2A2C2F", metallic=0.6, roughness=0.25, coat=1.0, coat_rough=0.03),
+        "wheel_bolt": lambda: principled("Wheel_Bolt_Zinc", "#8E9093", metallic=1.0, roughness=0.32),
+        "brake_pad": lambda: principled("Brake_Pad_Lining", "#2E2B29", roughness=0.9, normal_noise=0.3, noise_scale=800),
         "tyre": lambda: principled("Tyre_Rubber", "#141414", roughness=0.88, normal_noise=0.1, noise_scale=1500),
         "tyre_text": lambda: principled("Tyre_Sidewall_Text", "#1C1C1C", roughness=0.7),
-        "brake_disc": lambda: principled("Brake_Disc_Cast_Iron", "#6E6C69", metallic=1.0, roughness=0.42, aniso=0.5),
+        "brake_disc": lambda: principled("Brake_Disc_Cast_Iron", "#6E6C69", metallic=1.0, roughness=0.42, aniso=0.5, aniso_axis="Y"),
         "brake_disc_hat": lambda: principled("Brake_Disc_Hat", "#3D3A36", metallic=0.8, roughness=0.6),
         "caliper": lambda: principled("Brake_Caliper_Black", "#1A1A1A", metallic=0.3, roughness=0.5),
         "steel_dark": lambda: principled("Steel_Dark", "#2A2A2A", metallic=1.0, roughness=0.5),
@@ -147,6 +158,16 @@ def get(key: str, paint="ibis_white"):
         "needle_red": lambda: principled("Gauge_Needle_Red", "#E01010", roughness=0.3, emission="#FF2010", emission_strength=1.0),
         "seatbelt": lambda: principled("Seatbelt_Webbing", "#1A1A1A", roughness=0.85, normal_noise=0.2, noise_scale=2000),
         "mirror": lambda: principled("Mirror_Glass", "#D0D4D8", metallic=1.0, roughness=0.02),
+        # ---- interior (added by the interior package) ----
+        "screen_ui": lambda: principled("Screen_UI_White", "#DDE6F0", roughness=0.3, emission="#E8F0FF", emission_strength=1.6),
+        "screen_ui_red": lambda: principled("Screen_UI_Audi_Red", "#B0101A", roughness=0.3, emission="#E0202A", emission_strength=1.4),
+        "screen_ui_dim": lambda: principled("Screen_UI_Grey", "#4A5560", roughness=0.3, emission="#6A7888", emission_strength=0.7),
+        "cluster_glass": lambda: principled("Cluster_Cover_Glass", "#F4F6F8", roughness=0.0, transmission=1.0, ior=1.49, alpha=0.06),
+        "rubber_pad": lambda: principled("Rubber_Pad", "#151515", roughness=0.8, normal_noise=0.15, noise_scale=1800),
+        "grille_black": lambda: principled("Speaker_Grille_Black", "#0E0E0E", metallic=0.6, roughness=0.45),
+        "headliner_grey": lambda: principled("Headliner_Moon_Silver", "#8E8E8C", roughness=0.95, sheen=0.5, normal_noise=0.2, noise_scale=2500),
+        "mat_edge": lambda: principled("Floor_Mat_Edging", "#1A1A1A", roughness=0.7),
+        "knurl_alu": lambda: principled("Aluminium_Knurled", "#C0C2C4", metallic=1.0, roughness=0.28, normal_noise=0.4, noise_scale=6000),
     }
     if key not in lib:
         raise KeyError(f"unknown material {key}")
