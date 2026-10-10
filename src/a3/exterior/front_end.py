@@ -53,7 +53,9 @@ def _grille(ctx, surf):
     mesh.shade_smooth(mesh_ob, 60)
 
     # recessed back panel (follows the face shape, 55 mm behind it)
-    zs = np.linspace(0.272, 0.684, 26)
+    gz = np.asarray(op.GRILLE, float)[:, 1] * 1e-3
+    g_lo, g_hi = gz.min(), gz.max()
+    zs = np.linspace(g_lo + 0.008, g_hi - 0.004, 26)
     rows = []
     for z in zs:
         w = _poly_halfwidth(op.GRILLE, z * 1000) + 0.01
@@ -67,7 +69,7 @@ def _grille(ctx, surf):
     mesh.grid_object("Grille_Back", np.array(rows), collection=COL, material=back)
 
     # horizontal double slats (gloss black), across the full opening width
-    for k, z in enumerate(np.arange(0.288, 0.676, 0.0335)):
+    for k, z in enumerate(np.arange(g_lo + 0.022, g_hi - 0.010, 0.0335)):
         w = _poly_halfwidth(op.GRILLE, z * 1000) - 0.006
         if w <= 0.05:
             continue
@@ -85,8 +87,8 @@ def _grille(ctx, surf):
                          collection=COL, material=black)
     # vertical rib grid behind the slats (titanium black, S line)
     for y in np.arange(-0.38, 0.381, 0.0475):
-        top = 0.676
-        bot = 0.282
+        top = g_hi - 0.010
+        bot = g_lo + 0.010
         pts = []
         for z in np.linspace(bot, top, 30):
             if abs(y) > _poly_halfwidth(op.GRILLE, z * 1000) - 0.01:
@@ -102,7 +104,7 @@ def _grille(ctx, surf):
     return P
 
 
-def _rings(ctx, surf, centre_z=0.598):
+def _rings(ctx, surf, centre_z=op.RINGS_Z * 1e-3):
     """Audi four rings, chrome, on the grille (ring OD 92 mm, pitch 62 mm)."""
     chrome = ctx.mat("badge_chrome")
     od, pitch, tube_w, tube_d = 0.092, 0.0615, 0.0105, 0.009
@@ -134,7 +136,7 @@ def _rings(ctx, surf, centre_z=0.598):
     return obs
 
 
-def _plate(ctx, surf, cz=0.415, front=True):
+def _plate(ctx, surf, cz=op.PLATE_Z * 1e-3, front=True):
     """EU licence plate 520 x 110 mm (Spanish format) on a holder."""
     white, blue, txt = ctx.mat("plate_white"), ctx.mat("plate_blue"), ctx.mat("plate_text")
     holder = ctx.mat("black_satin")
@@ -248,9 +250,11 @@ def _intakes(ctx, surf):
         _hex_insert("Intake_Honeycomb" + sfx, surf, op.SIDE_INTAKE, mirror, tex)
         # back wall behind the honeycomb
         rows = []
-        for z in np.linspace(0.238, 0.418, 10):
+        iz = np.asarray(op.SIDE_INTAKE, float)[:, 1] * 1e-3
+        iy = np.asarray(op.SIDE_INTAKE, float)[:, 0] * 1e-3
+        for z in np.linspace(iz.min() + 0.002, iz.max() - 0.002, 10):
             row = []
-            for y in np.linspace(0.43, 0.865, 24):
+            for y in np.linspace(iy.min(), iy.max(), 24):
                 p, n = _face_x(surf, s * y, z)
                 x = (p[0] if p is not None else 0.7) - 0.06
                 row.append((x, s * y, z))
@@ -260,17 +264,18 @@ def _intakes(ctx, surf):
                          flip=mirror)
         # horizontal blade across the intake (gloss black, S line)
         path = []
-        for y in np.linspace(0.445, 0.858, 30):
-            p, n = _face_x(surf, s * y, 0.335)
+        bz = op.BLADE_Z * 1e-3
+        for y in np.linspace(iy.min() - 0.05, iy.max() - 0.01, 30):
+            p, n = _face_x(surf, s * y, bz)
             if p is not None:
-                path.append((p[0] - 0.006, s * y, 0.335))
+                path.append((p[0] - 0.006, s * y, bz))
         path = np.array(path)
         prof = np.array([[0.0, 0.009], [0.0, -0.007], [-0.03, -0.004], [-0.03, 0.006]])
         grid = np.array([[p + np.array([pr[0], 0, pr[1]]) for pr in prof] for p in path])
         mesh.grid_object("Intake_Blade" + sfx, grid, closed_v=True, cap_u=True,
                          collection=COL, material=black)
         # fog lamp: rectangular reflector + clear lens in the lower outer part
-        cy, cz, w, h = s * 0.745, 0.283, 0.150, 0.042
+        cy, cz, w, h = s * op.FOG_CENTRE[0] * 1e-3, op.FOG_CENTRE[1] * 1e-3, 0.130, 0.036
         p, n = _face_x(surf, cy, cz)
         if p is not None:
             x = p[0] - 0.022

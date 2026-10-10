@@ -109,7 +109,7 @@ def _diffuser(ctx, surf):
 def _plate_rings(ctx, surf):
     # rings on the tailgate
     chrome = ctx.mat("badge_chrome")
-    cz = 0.946
+    cz = 0.930     # v0.2: sline_rear ray cast (v0.1: 0.946)
     od, pitch, tw = 0.078, 0.052, 0.009
     sec = rounded_polygon([(-tw / 2, -0.004), (tw / 2, -0.004), (tw / 2, 0.004),
                            (-tw / 2, 0.004)], 0.003, 4)

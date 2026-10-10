@@ -1,0 +1,441 @@
+{
+ "# front": "digitised on tools/zoom.py crops; left-side feature names",
+ "hl_inner_tip": {
+  "sline_front": [
+   456,
+   530
+  ],
+  "yellow": [
+   1466.2,
+   719.8
+  ]
+ },
+ "hl_top_outer": {
+  "sline_front": [
+   770,
+   494.8
+  ],
+  "yellow": [
+   1127.5,
+   688.7
+  ]
+ },
+ "hl_lower_outer": {
+  "sline_front": [
+   736,
+   566
+  ],
+  "yellow": [
+   1176.2,
+   768.5
+  ]
+ },
+ "hl_inner_bottom_kink": {
+  "sline_front": [
+   484,
+   576
+  ],
+  "yellow": [
+   1421.4,
+   778.2
+  ]
+ },
+ "washer_cover": {
+  "sline_front": [
+   564,
+   648
+  ],
+  "yellow": [
+   1353.3,
+   858.8
+  ]
+ },
+ "park_sensor_outer": {
+  "sline_front": [
+   624,
+   658
+  ],
+  "yellow": [
+   1289,
+   871.6
+  ]
+ },
+ "grille_top_chamfer": {
+  "sline_front": [
+   418,
+   522
+  ],
+  "yellow": [
+   1516.8,
+   706.2
+  ]
+ },
+ "grille_side_top": {
+  "sline_front": [
+   434,
+   546
+  ],
+  "yellow": [
+   1493.4,
+   735.4
+  ]
+ },
+ "grille_bottom_corner": {
+  "sline_front": [
+   372,
+   766
+  ],
+  "yellow": [
+   1553.7,
+   959.2
+  ]
+ },
+ "rings_centre": {
+  "sline_front": [
+   254,
+   554
+  ],
+  "yellow": [
+   1667.4,
+   729.5
+  ],
+  "_centre": true
+ },
+ "ws_bottom_corner": {
+  "sline_front": [
+   1082.2,
+   343.3
+  ],
+  "yellow": [
+   786.5,
+   487.4
+  ]
+ },
+ "ws_top_corner": {
+  "sline_front": [
+   1222.2,
+   130.9
+  ],
+  "yellow": [
+   649.6,
+   245.4
+  ]
+ },
+ "intake_inner_top": {
+  "sline_front": [
+   442.2,
+   702.2
+  ],
+  "yellow": [
+   1480.6,
+   913.9
+  ]
+ },
+ "intake_outer_top": {
+  "sline_front": [
+   677.8,
+   700
+  ],
+  "yellow": [
+   1243.3,
+   915.8
+  ]
+ },
+ "intake_outer_bottom": {
+  "sline_front": [
+   700,
+   791.1
+  ],
+  "yellow": [
+   1202.5,
+   1003.4
+  ]
+ },
+ "intake_inner_bottom": {
+  "sline_front": [
+   424.4,
+   795.6
+  ],
+  "yellow": [
+   1492.3,
+   974.2
+  ]
+ },
+ "blade_tip": {
+  "sline_front": [
+   391.1,
+   740
+  ],
+  "yellow": [
+   1533.1,
+   945
+  ]
+ },
+ "fog_centre": {
+  "sline_front": [
+   633.3,
+   731.1
+  ],
+  "yellow": [
+   1278.4,
+   941.1
+  ]
+ },
+ "spoiler_end_lower": {
+  "sline_rear": [
+   1148.9,
+   159.1
+  ],
+  "yellow_rear": [
+   855.6,
+   277.8
+  ]
+ },
+ "rw_bottom_corner": {
+  "sline_rear": [
+   1248.9,
+   315.6
+  ],
+  "yellow_rear": [
+   744.4,
+   462.2
+  ],
+  "sline_rear!far": [
+   1726.7,
+   288.9
+  ],
+  "yellow_rear!far": [
+   213.3,
+   404.4
+  ]
+ },
+ "tl_outer_top": {
+  "sline_rear": [
+   1137.8,
+   382.2
+  ],
+  "yellow_rear": [
+   868.9,
+   540
+  ]
+ },
+ "tl_outer_bottom": {
+  "sline_rear": [
+   1166.7,
+   453.3
+  ],
+  "yellow_rear": [
+   855.6,
+   624.4
+  ]
+ },
+ "tl_inner_top": {
+  "sline_rear": [
+   1451.1,
+   373.3
+  ],
+  "yellow_rear": [
+   500,
+   531.1
+  ]
+ },
+ "tl_inner_tip": {
+  "sline_rear": [
+   1482.2,
+   408.9
+  ],
+  "yellow_rear": [
+   477.8,
+   571.1
+  ],
+  "sline_rear!far": [
+   1740,
+   391.1
+  ],
+  "yellow_rear!far": [
+   200,
+   531.1
+  ]
+ },
+ "tl_split_top": {
+  "sline_rear": [
+   1300,
+   382.2
+  ],
+  "yellow_rear": [
+   691.1,
+   533.3
+  ]
+ },
+ "tl_split_bottom": {
+  "sline_rear": [
+   1357.8,
+   468.9
+  ],
+  "yellow_rear": [
+   624.4,
+   631.1
+  ]
+ },
+ "tailgate_bottom_corner": {
+  "sline_rear": [
+   1420,
+   546.7
+  ],
+  "yellow_rear": [
+   553.3,
+   728.9
+  ]
+ },
+ "rings_rear": {
+  "sline_rear": [
+   1620,
+   368.9
+  ],
+  "yellow_rear": [
+   322.2,
+   511.1
+  ],
+  "_centre": true
+ },
+ "exhaust_outer": {
+  "sline_rear": [
+   1393.3,
+   780
+  ],
+  "yellow_rear!far": [
+   135,
+   860
+  ]
+ },
+ "exhaust_inner": {
+  "sline_rear": [
+   1437.8,
+   777.8
+  ],
+  "yellow_rear!far": [
+   155,
+   872.5
+  ]
+ },
+ "rsensor_outer": {
+  "sline_rear": [
+   1340,
+   623.6
+  ],
+  "yellow_rear!far": [
+   189,
+   731.5
+  ]
+ },
+ "rsensor_inner": {
+  "sline_rear": [
+   1557.8,
+   600
+  ],
+  "yellow_rear!far": [
+   390,
+   781.5
+  ]
+ },
+ "diffuser_corner": {
+  "sline_rear": [
+   1348.9,
+   728.9
+  ],
+  "yellow_rear": [
+   650,
+   950
+  ]
+ },
+ "rbumper_low_outer": {
+  "sline_rear": [
+   1140,
+   806.7
+  ],
+  "yellow_rear": [
+   855,
+   1025
+  ]
+ },
+ "rsensor_inner_r": {
+  "sline_rear!far": [
+   1746.7,
+   575.6
+  ],
+  "yellow_rear": [
+   639,
+   827.5
+  ]
+ },
+ "bgap_top": {
+  "sline_rear": [
+   617.7,
+   315.4
+  ],
+  "side": [
+   746.7,
+   360
+  ]
+ },
+ "bgap_bottom": {
+  "sline_rear": [
+   582.3,
+   674.5
+  ],
+  "side": [
+   758.3,
+   680
+  ]
+ },
+ "rdr_top": {
+  "sline_rear": [
+   950.8,
+   309.8
+  ],
+  "side": [
+   392,
+   340
+  ]
+ },
+ "rdr_kink": {
+  "sline_rear": [
+   935.9,
+   378.6
+  ],
+  "side": [
+   361,
+   386.5
+  ]
+ },
+ "rdr_bottom": {
+  "sline_rear": [
+   766.6,
+   693.1
+  ],
+  "side": [
+   533,
+   661.7
+  ]
+ },
+ "handle_front": {
+  "sline_rear": [
+   530.2,
+   408.4
+  ],
+  "side": [
+   823.3,
+   450
+  ]
+ },
+ "handle_rear": {
+  "sline_rear": [
+   828,
+   419.6
+  ],
+  "side": [
+   447,
+   434
+  ]
+ }
+}

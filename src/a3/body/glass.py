@@ -55,24 +55,23 @@ def build(ctx):
         mesh.mirror_copy_y(t, nm + ".R", TRIM_COL)
 
     # ---- windscreen & rear window -------------------------------------------
-    ws = _glass(ref, "Glass_Windscreen", _mm(op.mirror_outline(op.WINDSCREEN)), "XY",
-                0.9, 1.6, glass, inset=0.002, thick=0.005)
-    rw = _glass(ref, "Glass_RearWindow", _mm(op.mirror_outline(op.REAR_WINDOW)), "XY",
-                0.98, 1.5, glass, inset=0.002, thick=0.004)
-    for g, half, lo, hi, w in ((ws, op.WINDSCREEN, 0.9, 1.6, 0.070),
-                               (rw, op.REAR_WINDOW, 0.98, 1.5, 0.055)):
-        outer = _mm(op.mirror_outline(half))
+    # (outline, projection plane, prism range, thickness, frit band width)
+    screens = (("Glass_Windscreen", _mm(op.mirror_outline(op.WINDSCREEN)), "XY", 0.9, 1.6,
+                0.005, 0.070),
+               ("Glass_RearWindow", _mm(op.mirror_outline(op.REAR_WINDOW_YZ, axis=0)), "YZ",
+                op.REAR_WINDOW_X[0], op.REAR_WINDOW_X[1], 0.004, 0.055))
+    for name, outer, plane, lo, hi, thick, w in screens:
+        g = _glass(ref, name, outer, plane, lo, hi, glass, inset=0.002, thick=thick)
         if mesh.polygon_area(outer) < 0:
             outer = outer[::-1]
         inner = mesh.polyline_offset_2d(outer, -w, closed=True)
         if mesh.polygon_area(inner) < 0 or abs(mesh.polygon_area(inner)) > abs(mesh.polygon_area(outer)):
             inner = mesh.polyline_offset_2d(outer, w, closed=True)
-        band = st.patch(ref, outer, "XY", lo, hi, g.name + "_Frit", COL, frit)
-        hole = mesh.extrude_polygon(g.name + "_FritHole", inner, hi - lo + 0.2, plane="XY",
+        band = st.patch(ref, outer, plane, lo, hi, name + "_Frit", COL, frit)
+        hole = mesh.extrude_polygon(name + "_FritHole", inner, hi - lo + 0.2, plane=plane,
                                     offset=lo - 0.1, collection=scene.temp_collection("_tmp_patch"))
         mesh.boolean(band, hole, hole_tolerant=True)
-        st.offset(band, -0.0075 if g is ws else -0.0065)   # inner face of the glass
-        st.offset(band, 0.0)
+        st.offset(band, -(thick + 0.0025))     # inner face of the glass
         mesh.shade_smooth(band, 40)
 
     # ---- DLO surround seal / trim (projected outline) ------------------------
@@ -85,11 +84,11 @@ def build(ctx):
     s = st.strip("Trim_DLO_Surround.L", P, N, prof, TRIM_COL, trim, closed=True)
     mesh.mirror_copy_y(s, "Trim_DLO_Surround.R", TRIM_COL)
     # windscreen / rear window bonding seals
-    for nm, half, lo in (("Seal_Windscreen", op.WINDSCREEN, 0.9),
-                         ("Seal_RearWindow", op.REAR_WINDOW, 0.98)):
-        o = resample(catmull_rom(_mm(op.mirror_outline(half)), 6, closed=True), 500,
-                     closed=True)
-        P, N = st.clean_projection(*surf.project(o, "XY", side=1))
+    for nm, outline2d, plane, side in (
+            ("Seal_Windscreen", op.mirror_outline(op.WINDSCREEN), "XY", 1),
+            ("Seal_RearWindow", op.mirror_outline(op.REAR_WINDOW_YZ, axis=0), "YZ", -1)):
+        o = resample(catmull_rom(_mm(outline2d), 6, closed=True), 500, closed=True)
+        P, N = st.clean_projection(*surf.project(o, plane, side=side))
         prof = np.array([[-0.003, -0.004], [0.003, -0.004], [0.003, 0.001], [-0.003, 0.001]])
         st.strip(nm, P, N, prof, TRIM_COL, seal, closed=True)
     tmp = scene.temp_collection("_tmp_patch")

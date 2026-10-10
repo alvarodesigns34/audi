@@ -89,7 +89,8 @@ def build(ctx):
     cut_col = scene.temp_collection("_cutters_body")
     cutters = []
     cutters += openings.arch_cutter("Cut_Arch_F", 0.0, cut_col, material=dark)
-    cutters += openings.arch_cutter("Cut_Arch_R", mm(-2636), cut_col, material=dark)
+    cutters += openings.arch_cutter("Cut_Arch_R", mm(-2636), cut_col, material=dark,
+                                    r=openings.ARCH_R_REAR)
     cutters += openings.window_cutters(cut_col, material=dark)
     cutters += openings.gap_cutters(cut_col, material=dark)
     from .surftools import Surface
