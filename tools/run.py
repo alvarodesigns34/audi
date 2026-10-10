@@ -29,9 +29,16 @@ def main():
     ap.add_argument("--glb", default="")
     ap.add_argument("--tag", default="")
     ap.add_argument("--strict", action="store_true")
+    ap.add_argument("--clay", action="store_true", help="grey clay paint for shape review")
     a = ap.parse_args()
     parts = [p for p in a.parts.split(",") if p] or None
     ctx = build.build(parts, paint=a.paint, strict=a.strict)
+    if a.clay:
+        m = bpy.data.materials.get("Paint_Body")
+        if m:
+            b = m.node_tree.nodes["Principled BSDF"]
+            b.inputs["Base Color"].default_value = (0.12, 0.12, 0.125, 1)
+            b.inputs["Coat Weight"].default_value = 0.3
     if a.save:
         os.makedirs(os.path.dirname(os.path.abspath(a.save)), exist_ok=True)
         bpy.ops.wm.save_as_mainfile(filepath=os.path.abspath(a.save), compress=True)
