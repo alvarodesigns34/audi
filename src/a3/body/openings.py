@@ -300,10 +300,10 @@ TAILLIGHT_SIDE = [(-3120, 934), (-3020, 928), (-2950, 912), (-2912, 880),
 TAILLIGHT_REAR_BOTTOM = [(750, 806), (654, 793), (629, 809), (589, 834), (480, 868),
                          (400, 888)]
 # S line diffuser (rear view, half outline, top edge from the side to centre)
-DIFFUSER = [(0, 392), (300, 380), (560, 360), (700, 338), (760, 300), (780, 240),
-            (760, 160), (0, 160)]
+DIFFUSER = [(0, 392), (300, 380), (560, 360), (700, 338), (755, 300), (765, 262),
+            (745, 236), (0, 236)]
 # twin tail pipes on the LEFT (2.0 TDI S line), centres (y, z) and diameter
-EXHAUST_TIPS = [(266, 255), (342, 250)]
+EXHAUST_TIPS = [(266, 262), (342, 262)]
 EXHAUST_D = 76
 
 
@@ -338,9 +338,7 @@ def rear_cutters(surf, col, material=None):
         obs += taillight_prisms(col, material, mirror)
     g = np.asarray(DIFFUSER, float)
     full = np.vstack([g[:-1], (g[::-1] * [-1, 1])[1:-1]])
-    from ..core.curves import catmull_rom, resample
-    dense = resample(np.vstack([full]), 160, closed=True) * 1e-3
-    P, _ = surf.project(dense, "YZ", side=-1)
-    P = np.array([p for p in P if p is not None])
-    obs.append(local_prism("Cut_Diffuser", P, np.array([-1.0, 0, 0]), 0.08, 0.06, col, material))
+    # straight prism along X restricted to the bumper's rear face region
+    obs.append(mesh.extrude_polygon("Cut_Diffuser", full * 1e-3, 0.24, plane="YZ",
+                                    offset=-3.60, collection=col, material=material))
     return obs

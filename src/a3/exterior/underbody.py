@@ -42,6 +42,6 @@ def build(ctx):
         for side, sfx in ((1, "L"), (-1, "R")):
             _liner(f"Arch_Liner_{nm}{sfx}", xc, side, mat)
     # underbody trays between and around the axles
-    mesh.extrude_polygon("Underbody_Tray", [(-3.25, -0.60), (0.75, -0.60), (0.75, 0.60),
-                                            (-3.25, 0.60)], 0.004, plane="XY", offset=0.142,
+    mesh.extrude_polygon("Underbody_Tray", [(-3.00, -0.60), (0.65, -0.60), (0.65, 0.60),
+                                            (-3.00, 0.60)], 0.004, plane="XY", offset=0.142,
                          collection=COL, material=under)

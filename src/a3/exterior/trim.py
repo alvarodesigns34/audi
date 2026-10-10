@@ -45,18 +45,6 @@ def _handle(ctx, surf, x0, z0, side, name):
     ob = mesh.grid_object(name, np.array(rows), closed_v=True, cap_u=True, collection=COL,
                           material=paint)
     mesh.shade_smooth(ob, 60)
-    # dark recess behind the handle (finger dish)
-    dish = []
-    for a in np.linspace(0, 2 * math.pi, 28, endpoint=False):
-        dish.append((x0 + 0.06 * math.cos(a), z0 - 0.012 + 0.022 * math.sin(a)))
-    P, N = surf.project(dish, "XZ", side=side)
-    P = np.array([p for p in P if p is not None])
-    from ..body.openings import local_prism
-    # thin dark disc slightly inside the paint (reads as shadowed dish)
-    c = P.mean(0)
-    verts = [tuple(p + np.array([0, -side * 0.0004, 0])) for p in P] + [tuple(c)]
-    faces = [(len(P), i, (i + 1) % len(P)) for i in range(len(P))]
-    mesh.object_from_pydata(name + "_Dish", verts, faces, COL, ctx.mat("black_satin"))
 
 
 def _badge(ctx, surf, x, z, side, name):

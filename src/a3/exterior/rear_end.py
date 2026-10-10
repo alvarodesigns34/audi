@@ -74,7 +74,7 @@ def _diffuser(ctx, surf):
     grey = ctx.mat("titanium_grey")
     chrome = ctx.mat("chrome")
     rows = []
-    for z in np.linspace(0.225, 0.385, 12):
+    for z in np.linspace(0.238, 0.385, 12):
         row = []
         for y in np.linspace(-0.76, 0.76, 60):
             p, n = _rear_x(surf, y, z)
@@ -87,7 +87,7 @@ def _diffuser(ctx, surf):
         p, n = _rear_x(surf, y, 0.30)
         if p is None:
             continue
-        mesh.extrude_polygon(f"Diffuser_Fin_{y:+.2f}", [(p[0] + 0.025, 0.228), (p[0] - 0.004, 0.228),
+        mesh.extrude_polygon(f"Diffuser_Fin_{y:+.2f}", [(p[0] + 0.025, 0.240), (p[0] - 0.004, 0.240),
                                                      (p[0] - 0.004, 0.37), (p[0] + 0.025, 0.37)],
                              0.006, plane="XZ", offset=y - 0.003, collection=COL, material=grey)
     # twin round tail pipes (left), chrome, 76 mm, slightly protruding
