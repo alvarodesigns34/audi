@@ -214,3 +214,74 @@ def gap_cutters(col, material=None):
     obs.append(rear_prism("Gap_Tailgate", thick_polyline(catmull_rom(full, 6), g),
                           -3.60, -3.05, col, material=material))
     return obs
+
+
+# --------------------------------------------------------------------------
+# Front-end openings (front view y/z, left half, mm). Digitised by ray casting
+# the calibrated white S line photo onto the model skin
+# (tools/raycast_photo.py, reference/match_sline_front.json).
+# --------------------------------------------------------------------------
+
+# Singleframe grille (pre-facelift: upper corners chamfered), half outline
+# from the top centre round the outer edge to the bottom centre.
+GRILLE = [(0, 688), (330, 680), (395, 670), (432, 638), (426, 560), (410, 470),
+          (390, 370), (368, 300), (345, 272), (300, 266), (0, 262)]
+# Headlight (Xenon plus), closed outline, left side
+HEADLIGHT = [(535, 648), (566, 668), (640, 680), (720, 690), (800, 697),
+             (850, 701), (873, 696), (878, 670), (872, 628), (845, 600),
+             (800, 588), (760, 583), (700, 584), (650, 592), (600, 610), (560, 632)]
+# S line side air intake (fog lamp housing), closed outline, left side
+SIDE_INTAKE = [(428, 412), (600, 415), (760, 418), (855, 420), (868, 360),
+               (862, 300), (848, 248), (700, 240), (520, 236), (452, 236),
+               (436, 300)]
+# Headlight washer cover (gap outline), left side
+WASHER_COVER = dict(cy=640, cz=515, w=110, h=36, r=16)
+
+
+def front_view_cutter(name, surf, outline_yz_mm, col, material=None, depth_in=0.09,
+                      depth_out=0.06, closed=True, mirror=False):
+    """Cutter following the skin: the outline is ray cast onto the skin from
+    the front and extruded locally along X (in front of / behind the skin)."""
+    from .surftools import Surface  # noqa (type hint only)
+    pts = np.asarray(outline_yz_mm, float) * 1e-3
+    if mirror:
+        pts = pts * [-1, 1]
+    from ..core.curves import catmull_rom, resample
+    dense = resample(catmull_rom(pts, 6, closed=closed), 160, closed=closed)
+    P, N = surf.project(dense, "YZ", side=1)
+    P = np.array([p for p in P if p is not None])
+    return local_prism(name, P, np.array([1.0, 0, 0]), depth_in, depth_out, col, material)
+
+
+def local_prism(name, P, d, depth_in, depth_out, col, material=None):
+    """Closed solid from a 3D loop P extruded along direction d."""
+    d = np.asarray(d, float) / np.linalg.norm(d)
+    n = len(P)
+    outer = P + d * depth_out
+    inner = P - d * depth_in
+    verts = list(map(tuple, outer)) + list(map(tuple, inner))
+    co, ci = outer.mean(0), inner.mean(0)
+    verts += [tuple(co), tuple(ci)]
+    a, b = 2 * n, 2 * n + 1
+    faces = []
+    for k in range(n):
+        j = (k + 1) % n
+        faces.append((k, j, n + j, n + k))
+        faces.append((a, j, k))
+        faces.append((b, n + k, n + j))
+    ob = mesh.object_from_pydata(name, verts, faces, col, material, smooth=False)
+    mesh.recalc_normals(ob)
+    return ob
+
+
+def front_cutters(surf, col, material=None):
+    obs = []
+    g = np.asarray(GRILLE, float)
+    full = np.vstack([g, (g[::-1] * [-1, 1])[1:-1]])
+    obs.append(front_view_cutter("Cut_Grille", surf, full, col, material, depth_in=0.12))
+    for side, sfx in ((False, ".L"), (True, ".R")):
+        obs.append(front_view_cutter("Cut_Headlight" + sfx, surf, HEADLIGHT, col, material,
+                                     depth_in=0.14, mirror=side))
+        obs.append(front_view_cutter("Cut_Intake" + sfx, surf, SIDE_INTAKE, col, material,
+                                     depth_in=0.10, mirror=side))
+    return obs

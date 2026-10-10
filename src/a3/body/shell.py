@@ -56,7 +56,7 @@ def build(ctx):
     dark = ctx.mat("gap")
     here = os.path.dirname(os.path.abspath(__file__))
     k = cache.key(*(os.path.join(here, f) for f in
-                    ("lines.py", "surface.py", "openings.py", "shell.py")))
+                    ("lines.py", "surface.py", "openings.py", "shell.py", "surftools.py")))
     ctx.data["body_lines"] = surface.BodyLines()
     got = cache.load("body", k, {"Body_Shell", "Body_Skin_Reference"},
                      lambda ob: scene.collection("_Construction" if "Reference" in ob.name
@@ -92,6 +92,9 @@ def build(ctx):
     cutters += openings.arch_cutter("Cut_Arch_R", mm(-2636), cut_col, material=dark)
     cutters += openings.window_cutters(cut_col, material=dark)
     cutters += openings.gap_cutters(cut_col, material=dark)
+    from .surftools import Surface
+    surf = Surface(ref)
+    cutters += openings.front_cutters(surf, cut_col, material=dark)
     # cut the closed thin shell one cutter at a time (bounded memory); the
     # FAST solver is reliable here because the shell stays a closed manifold
     # and no cutter face is coplanar with the skin.
