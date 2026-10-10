@@ -292,7 +292,7 @@ def _lip(ctx, surf):
         if p is not None:
             path.append((p[0] - 0.012, y, 0.205))
     path = np.array(path)
-    prof = np.array([[0.004, 0.006], [0.008, -0.003], [-0.05, -0.006], [-0.05, 0.006]])
+    prof = np.array([[-0.002, 0.004], [0.000, -0.004], [-0.05, -0.006], [-0.05, 0.004]])
     grid = np.array([[p + np.array([pr[0], 0, pr[1]]) for pr in prof] for p in path])
     mesh.grid_object("Front_Lip_Splitter", grid, closed_v=True, cap_u=True,
                      collection=COL, material=mat)

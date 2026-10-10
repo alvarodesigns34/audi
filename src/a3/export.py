@@ -2,7 +2,7 @@
 import bpy
 
 
-def glb(path, include_studio=False):
+def glb(path, include_studio=False, draco=True):
     # hide helper collections (names starting with "_") from export
     hidden = []
     for col in bpy.data.collections:
@@ -17,7 +17,10 @@ def glb(path, include_studio=False):
         use_visible=True,
         export_apply=True,
         export_yup=True,
-        export_draco_mesh_compression_enable=False,
+        export_draco_mesh_compression_enable=draco,
+        export_draco_mesh_compression_level=6,
+        export_draco_position_quantization=14,
+        export_draco_normal_quantization=10,
         export_materials="EXPORT",
         export_extras=False,
         export_cameras=False,

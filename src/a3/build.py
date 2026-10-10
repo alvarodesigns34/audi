@@ -18,7 +18,6 @@ PARTS = [
     ("body", "a3.body.shell"),
     ("glass", "a3.body.glass"),
     ("lights_front", "a3.exterior.headlights"),
-    ("lights_rear", "a3.exterior.taillights"),
     ("front_end", "a3.exterior.front_end"),
     ("rear_end", "a3.exterior.rear_end"),
     ("trim", "a3.exterior.trim"),

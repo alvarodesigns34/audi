@@ -74,11 +74,11 @@ def _diffuser(ctx, surf):
     grey = ctx.mat("titanium_grey")
     chrome = ctx.mat("chrome")
     rows = []
-    for z in np.linspace(0.20, 0.39, 12):
+    for z in np.linspace(0.225, 0.385, 12):
         row = []
         for y in np.linspace(-0.76, 0.76, 60):
             p, n = _rear_x(surf, y, z)
-            x = (p[0] if p is not None else -3.30) + 0.02
+            x = (p[0] if p is not None else -3.30) + 0.025
             row.append((x, y, z))
         rows.append(row)
     mesh.grid_object("Diffuser_Panel", np.array(rows), collection=COL, material=dark, flip=True)
@@ -87,8 +87,8 @@ def _diffuser(ctx, surf):
         p, n = _rear_x(surf, y, 0.30)
         if p is None:
             continue
-        mesh.extrude_polygon(f"Diffuser_Fin_{y:+.2f}", [(p[0] + 0.02, 0.20), (p[0] - 0.03, 0.20),
-                                                     (p[0] - 0.03, 0.37), (p[0] + 0.01, 0.37)],
+        mesh.extrude_polygon(f"Diffuser_Fin_{y:+.2f}", [(p[0] + 0.025, 0.228), (p[0] - 0.004, 0.228),
+                                                     (p[0] - 0.004, 0.37), (p[0] + 0.025, 0.37)],
                              0.006, plane="XZ", offset=y - 0.003, collection=COL, material=grey)
     # twin round tail pipes (left), chrome, 76 mm, slightly protruding
     for (yy, zz) in op.EXHAUST_TIPS:
@@ -147,18 +147,18 @@ def _spoiler(ctx, ref, surf):
         P, N = surf.project([(-3.10, y)], "XY", side=1)
         base = P[0] if P[0] is not None else np.array([-3.10, y, 1.34])
         taper = 1.0 - (abs(y) / 0.585) ** 6
-        x_te = -3.10 - 0.200 - 0.02 * taper
-        z_te = base[2] - 0.040
-        top = [(base[0], y, base[2] + 0.001), (-3.18, y, base[2] - 0.004), (x_te, y, z_te)]
-        bot = [(x_te + 0.003, y, z_te - 0.008), (-3.20, y, base[2] - 0.045),
-               (base[0] - 0.02, y, base[2] - 0.03)]
+        x_te = -3.10 - 0.165 - 0.015 * taper
+        z_te = base[2] - 0.050
+        top = [(base[0], y, base[2] + 0.001), (-3.19, y, base[2] - 0.010), (x_te, y, z_te)]
+        bot = [(x_te + 0.004, y, z_te - 0.007), (-3.19, y, base[2] - 0.040),
+               (base[0] - 0.015, y, base[2] - 0.022)]
         sec = catmull_rom(np.array(top), 6)[:-1].tolist() + catmull_rom(np.array(bot), 6).tolist()
         secs.append(sec)
     g = np.array(secs)
     sp = mesh.grid_object("Roof_Spoiler", g, closed_v=True, cap_u=True, collection=COL,
                           material=paint)
     # third brake light strip under the trailing edge
-    path = np.array([(-3.29, y, s[2][2] - 0.012) for y, s in zip(ys[15:46], secs[15:46])])
+    path = np.array([(-3.255, y, s[11][2] - 0.012) for y, s in zip(ys[15:46], secs[15:46])])
     mesh.tube_along("Brake_Light_High", path, 0.004, sides=8, collection=LCOL,
                     material=ctx.mat("led_red"))
 
