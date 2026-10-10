@@ -284,6 +284,8 @@ def _split_side_glass(ob):
 
 def build(ctx):
     from .body import panels
+    from .core import uv
+    uv.apply_all()
     # leftovers of construction
     for ob in list(bpy.data.objects):
         if re.match(r"^tmp", ob.name):

@@ -176,19 +176,11 @@ def build(ctx):
                  0.0, 0.0018, COL, ctx.mat("piano_black"), bevel=0.0006)
     fr.data.transform(M)
     scr = g.prism("Cluster_FIS_Screen", g.rrect(FIS_W, FIS_H, 0.002, 4, (0, 0.002)), 0.0018, 0.0021,
-                  COL, ctx.mat("screen"))
+                  COL, ctx.mat("screen_fis"))
+    # baked FIS image (core/textures.fis_screen), planar UVs in the dial frame
+    from ..core import uv as uvm
+    uvm.set_planar(scr.data, (0, 0.002, 0), (1, 0, 0), (0, 1, 0), (FIS_W, FIS_H))
     scr.data.transform(M)
-    ui = g.Batch("Cluster_FIS_Content", COL, ctx.mat("screen_ui"), smooth=None)
-    for txt_, y, sz in (("D", 0.026, 0.009), ("12:30", -0.008, 0.0062), ("21.5°C", -0.022, 0.0050),
-                        ("0 km/h", 0.008, 0.0062)):
-        ob = g.text_mesh("tmp", txt_, size=sz, col=COL, extrude=0.0001)
-        g.set_verts(ob, g.apply_np(g.verts_of(ob) + np.array([0, y, 0.0022]), M))
-        ui.add_object(ob)
-    for k in range(3):   # thin separator lines
-        v, f = g.box_verts((0, 0.017 - k * 0.0165 if k < 2 else -0.030, 0.0022), (0.019, 0, 0),
-                           (0, 0.00025, 0), (0, 0, 0.0001))
-        ui.add(g.apply_np(v, M), f)
-    ui.build()
     # warning-lamp strip under the FIS and the two adjuster buttons below the dials
     for s in (-1, 1):
         b = g.lathe(f"Cluster_Button_{'L' if s < 0 else 'R'}", [(0, 0.004), (0.0035, 0.0037),
