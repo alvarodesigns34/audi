@@ -2,41 +2,256 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>A3 Sportback 8V — Digital Twin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#121314">
+<title>A3 Sportback 8V · Gemelo digital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#0e0f11; --panel:rgba(20,22,26,.82); --fg:#e9eaec; --muted:#9aa0a8; --accent:#c3002f; }
-  html,body { margin:0; height:100%; background:var(--bg); color:var(--fg);
-    font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; overflow:hidden; }
-  #c { position:fixed; inset:0; width:100%; height:100%; display:block; }
-  #ui { position:fixed; top:16px; left:16px; max-width:min(320px, calc(100vw - 32px));
-    background:var(--panel); backdrop-filter:blur(8px); border-radius:12px; padding:14px 16px; }
-  #ui h1 { font-size:15px; margin:0 0 2px; letter-spacing:.02em; }
-  #ui p { margin:0 0 10px; color:var(--muted); font-size:12px; }
-  .row { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0; }
-  button { background:#24272d; color:var(--fg); border:1px solid #33373f; border-radius:8px;
-    padding:6px 10px; font:inherit; font-size:12px; cursor:pointer; }
-  button.on { border-color:var(--accent); background:#3a1119; }
-  label { font-size:12px; color:var(--muted); display:block; margin-top:8px; }
-  #status { position:fixed; bottom:16px; left:16px; color:var(--muted); font-size:12px; }
+  :root {
+    --surface: #121314;          /* escena */
+    --panel: rgba(26, 27, 29, .94);
+    --panel-solid: #1a1b1d;
+    --raised: #222326;
+    --hairline: #2e2f33;
+    --ink: #ecebe8;
+    --ink-muted: #9b9994;
+    --ink-faint: #6c6a66;
+    --accent: #d0283a;
+    --accent-quiet: rgba(208, 40, 58, .14);
+    --r-outer: 14px;
+    --r-inner: 8px;
+    --dur-fast: 160ms;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --safe-l: env(safe-area-inset-left, 0px);
+    --safe-r: env(safe-area-inset-right, 0px);
+    --safe-b: env(safe-area-inset-bottom, 0px);
+    --safe-t: env(safe-area-inset-top, 0px);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--surface); color: var(--ink);
+    font: 400 14px/1.5 Archivo, system-ui, -apple-system, sans-serif; overflow: hidden;
+    -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none; user-select: none; }
+  #c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none;
+    outline: none; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+
+  /* ---- title -------------------------------------------------------------- */
+  #title { position: fixed; top: calc(20px + var(--safe-t)); left: calc(24px + var(--safe-l));
+    pointer-events: none; }
+  #title .eyebrow { font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--ink-muted); font-weight: 600; }
+  #title h1 { margin: 4px 0 2px; font-size: 26px; line-height: 1.05; letter-spacing: -.025em;
+    font-weight: 700; }
+  #title p { margin: 0; font-size: 13px; color: var(--ink-muted); }
+
+  /* ---- side panel ----------------------------------------------------------- */
+  #panel { position: fixed; top: calc(16px + var(--safe-t)); right: calc(16px + var(--safe-r));
+    width: 332px; max-height: calc(100% - 140px - var(--safe-t) - var(--safe-b));
+    display: flex; flex-direction: column; background: var(--panel);
+    border: 1px solid var(--hairline); border-radius: var(--r-outer); overflow: hidden;
+    transition: transform 240ms var(--ease-out), opacity 240ms var(--ease-out); }
+  #panel.hidden { transform: translateX(calc(100% + 24px)); opacity: 0; pointer-events: none; }
+  .tabs { display: flex; border-bottom: 1px solid var(--hairline); }
+  .tabs button { flex: 1; background: none; border: 0; padding: 12px 0 11px; font-size: 13px;
+    font-weight: 600; color: var(--ink-muted); border-bottom: 2px solid transparent;
+    min-height: 44px; }
+  .tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+  .tabpage { display: none; overflow-y: auto; padding: 16px; -webkit-overflow-scrolling: touch; }
+  .tabpage.on { display: block; }
+  h2 { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-muted);
+    font-weight: 600; margin: 20px 0 8px; }
+  h2:first-child { margin-top: 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { background: var(--raised); border: 1px solid var(--hairline); border-radius: var(--r-inner);
+    padding: 0 12px; min-height: 36px; font-size: 13px; transition: border-color var(--dur-fast); }
+  .chip:hover { border-color: #46474c; }
+  .chip.on { border-color: var(--accent); background: var(--accent-quiet); }
+  .swatches { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .sw { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 8px;
+    background: var(--raised); border: 1px solid var(--hairline); border-radius: var(--r-inner);
+    font-size: 12px; text-align: left; line-height: 1.25; min-height: 44px; }
+  .sw i { width: 100%; height: 22px; border-radius: 4px; display: block;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+  .sw.on { border-color: var(--accent); }
+  table.spec { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.spec td { padding: 7px 0; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+  table.spec td:first-child { color: var(--ink-muted); padding-right: 12px; width: 46%; }
+  table.spec tr:last-child td { border-bottom: 0; }
+  .src { font-size: 10px; color: var(--ink-faint); margin-left: 4px; }
+  .note { font-size: 12px; color: var(--ink-muted); margin: 12px 0 0; }
+  .toggle { display: flex; align-items: center; justify-content: space-between; min-height: 44px;
+    border-bottom: 1px solid var(--hairline); font-size: 13px; }
+  .toggle:last-child { border-bottom: 0; }
+  .switch { width: 42px; height: 24px; border-radius: 12px; background: #3a3b3f; border: 0;
+    position: relative; transition: background var(--dur-fast); flex: none; }
+  .switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px;
+    border-radius: 50%; background: #f2f1ee; transition: transform var(--dur-fast) var(--ease-out); }
+  .switch[aria-checked="true"] { background: var(--accent); }
+  .switch[aria-checked="true"]::after { transform: translateX(18px); }
+  ul.groups { list-style: none; margin: 0; padding: 0; }
+  ul.groups li { display: flex; align-items: center; gap: 10px; min-height: 40px;
+    border-bottom: 1px solid var(--hairline); font-size: 13px; }
+  ul.groups li:last-child { border-bottom: 0; }
+  ul.groups li span { flex: 1; cursor: pointer; }
+  ul.groups li span:hover { color: #fff; }
+  ul.groups input { width: 18px; height: 18px; accent-color: var(--accent); margin: 0; }
+  a.ar { display: flex; gap: 12px; align-items: center; color: inherit; text-decoration: none;
+    background: var(--raised); border: 1px solid var(--hairline); border-radius: var(--r-inner);
+    padding: 8px; }
+  a.ar img { width: 96px; border-radius: 4px; display: block; }
+  a.ar b { display: block; font-weight: 600; }
+  a.ar small { color: var(--ink-muted); font-size: 12px; }
+
+  /* ---- panel toggle -------------------------------------------------------------- */
+  #menu { position: fixed; top: calc(16px + var(--safe-t)); right: calc(16px + var(--safe-r));
+    width: 44px; height: 44px; border-radius: 12px; background: var(--panel);
+    border: 1px solid var(--hairline); display: none; align-items: center; justify-content: center; }
+  #menu svg { width: 20px; height: 20px; }
+  #panel .close { position: absolute; top: 6px; right: 6px; width: 32px; height: 32px; border: 0;
+    background: none; color: var(--ink-muted); display: none; }
+
+  /* ---- explode ruler ------------------------------------------------------------------ */
+  #explode { position: fixed; left: 50%; transform: translateX(-50%);
+    bottom: calc(20px + var(--safe-b)); width: min(560px, calc(100% - 48px));
+    background: var(--panel); border: 1px solid var(--hairline); border-radius: var(--r-outer);
+    padding: 12px 18px 10px; }
+  #explode .row { display: flex; align-items: baseline; justify-content: space-between; }
+  #explode label { font-size: 13px; font-weight: 600; }
+  #explode output { font-size: 13px; color: var(--ink-muted); }
+  .ruler { position: relative; height: 36px; margin-top: 4px; }
+  .ruler .ticks { position: absolute; left: 0; right: 0; top: 18px; height: 10px;
+    background: repeating-linear-gradient(90deg, #4a4b50 0 1px, transparent 1px 10%) ,
+                repeating-linear-gradient(90deg, #36373b 0 1px, transparent 1px 2%);
+    background-size: 100% 10px, 100% 5px; background-repeat: no-repeat; }
+  .ruler .fill { position: absolute; left: 0; top: 13px; height: 3px; background: var(--accent);
+    border-radius: 2px; width: 0; }
+  .ruler .track { position: absolute; left: 0; right: 0; top: 13px; height: 3px; background: #3a3b3f;
+    border-radius: 2px; }
+  .ruler input { position: absolute; inset: 0; width: 100%; margin: 0; opacity: 0;
+    cursor: ew-resize; touch-action: none; height: 36px; }
+  .ruler .knob { position: absolute; top: 4px; width: 22px; height: 22px; margin-left: -11px;
+    border-radius: 50%; background: #f2f1ee; box-shadow: 0 1px 3px rgba(0,0,0,.5);
+    pointer-events: none; }
+  .ruler .lbl { position: absolute; top: 28px; font-size: 10px; color: var(--ink-faint);
+    transform: translateX(-50%); }
+
+  /* ---- part tag ------------------------------------------------------------------------- */
+  #tag { position: fixed; left: 0; top: 0; pointer-events: none; opacity: 0;
+    transition: opacity 120ms; background: var(--panel-solid); border: 1px solid var(--hairline);
+    border-left: 2px solid var(--accent); border-radius: 6px; padding: 7px 10px; max-width: 280px;
+    z-index: 5; }
+  #tag.on { opacity: 1; }
+  #tag b { display: block; font-weight: 600; font-size: 13px; line-height: 1.3; }
+  #tag small { display: block; font-size: 11px; color: var(--ink-muted); }
+  #sel { position: fixed; left: calc(24px + var(--safe-l)); bottom: calc(20px + var(--safe-b));
+    width: 280px; background: var(--panel); border: 1px solid var(--hairline);
+    border-radius: var(--r-outer); padding: 12px 14px; display: none; }
+  #sel.on { display: block; }
+  #sel .eyebrow { font-size: 10px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--ink-muted); font-weight: 600; }
+  #sel b { display: block; font-size: 15px; letter-spacing: -.01em; margin: 2px 0 2px; }
+  #sel small { color: var(--ink-muted); font-size: 12px; display: block; }
+  #sel .acts { display: flex; gap: 6px; margin-top: 10px; }
+
+  /* ---- loading -------------------------------------------------------------------------- */
+  #load { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: var(--surface); transition: opacity 400ms var(--ease-out); z-index: 10; }
+  #load.done { opacity: 0; pointer-events: none; }
+  #load .box { width: min(360px, calc(100% - 48px)); }
+  #load .eyebrow { font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--ink-muted); font-weight: 600; }
+  #load h1 { font-size: 30px; letter-spacing: -.03em; line-height: 1.05; margin: 6px 0 20px; }
+  #load .bar { height: 2px; background: #2e2f33; border-radius: 1px; overflow: hidden; }
+  #load .bar i { display: block; height: 100%; width: 0; background: var(--accent);
+    transition: width 200ms linear; }
+  #load .st { display: flex; justify-content: space-between; font-size: 12px;
+    color: var(--ink-muted); margin-top: 10px; }
+  #help { position: fixed; left: calc(24px + var(--safe-l)); bottom: calc(20px + var(--safe-b));
+    font-size: 12px; color: var(--ink-faint); max-width: 260px; }
+
+  @media (max-width: 860px), (max-height: 560px) {
+    #title h1 { font-size: 20px; }
+    #title p { display: none; }
+    #menu { display: flex; }
+    #panel { top: auto; bottom: 0; right: 0; left: 0; width: auto; border-radius: 16px 16px 0 0;
+      max-height: 62%; padding-bottom: var(--safe-b); }
+    #panel.hidden { transform: translateY(100%); }
+    #panel .close { display: block; }
+    #explode { bottom: calc(12px + var(--safe-b)); padding: 10px 14px 8px; }
+    #help { display: none; }
+    #sel { left: 12px; right: 12px; width: auto; bottom: calc(108px + var(--safe-b)); }
+  }
+  @media (min-width: 861px) and (min-height: 561px) { #panel.hidden { transform: none; opacity: 1;
+    pointer-events: auto; } }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
 <body>
-<canvas id="c"></canvas>
-<div id="ui">
-  <h1>Audi A3 Sportback 8V · 2.0 TDI S line</h1>
-  <p>Gemelo digital procedural (2013–2016, pre-restyling)</p>
-  <label>Cámara</label>
-  <div class="row" id="views"></div>
-  <label>Pintura</label>
-  <div class="row" id="paints"></div>
-  <label>Luces</label>
-  <div class="row"><button id="lights">Encender luces</button><button id="rotate">Girar</button></div>
-  <label>iPhone / iPad</label>
-  <div class="row"><a id="ar" rel="ar" href="models/a3_sportback_8v.usdz"><img src="renders/front34.png" alt="Ver en AR" style="width:140px;border-radius:8px;display:block"></a></div>
-  <p style="margin-top:6px">Toca la imagen para abrir el modelo en Vista Rápida / AR (40 MB).</p>
+<canvas id="c" tabindex="0" aria-label="Modelo 3D del Audi A3 Sportback 8V"></canvas>
+
+<div id="title">
+  <div class="eyebrow">Gemelo digital · 8VA 2013–2016</div>
+  <h1>Audi A3 Sportback</h1>
+  <p>2.0 TDI 150 CV S tronic · S line · <span id="paintname">Blanco Ibis</span></p>
 </div>
-<div id="status">Cargando modelo…</div>
+
+<button id="menu" aria-label="Abrir panel"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 5h14M3 10h14M3 15h14"/></svg></button>
+
+<aside id="panel" class="hidden" aria-label="Controles">
+  <button class="close" aria-label="Cerrar panel">✕</button>
+  <div class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-tab="vista">Vista</button>
+    <button role="tab" aria-selected="false" data-tab="piezas">Piezas</button>
+    <button role="tab" aria-selected="false" data-tab="ficha">Ficha</button>
+  </div>
+  <section class="tabpage on" id="tab-vista">
+    <h2>Cámara</h2>
+    <div class="chips" id="views"></div>
+    <h2>Pintura</h2>
+    <div class="swatches" id="paints"></div>
+    <h2>Escena</h2>
+    <div class="toggle">Luces (diurnas, pilotos, cuadro)<button class="switch" id="sw-lights" role="switch" aria-checked="false" aria-label="Luces"></button></div>
+    <div class="toggle">Noche<button class="switch" id="sw-night" role="switch" aria-checked="false" aria-label="Noche"></button></div>
+    <div class="toggle">Giro automático<button class="switch" id="sw-spin" role="switch" aria-checked="false" aria-label="Giro"></button></div>
+    <div class="toggle">Cristales oscurecidos<button class="switch" id="sw-tint" role="switch" aria-checked="false" aria-label="Cristales"></button></div>
+    <h2>iPhone / iPad</h2>
+    <a class="ar" id="ar" rel="ar" href="models/a3_sportback_8v.usdz"><img src="renders/front34.png" alt="Vista previa"><span><b>Ver en AR</b><small>Vista Rápida · modelo completo USDZ</small></span></a>
+  </section>
+  <section class="tabpage" id="tab-piezas">
+    <h2>Grupos de montaje</h2>
+    <ul class="groups" id="groups"></ul>
+    <p class="note">Toca un nombre para encuadrarlo. Desmarca para ocultar el grupo.</p>
+  </section>
+  <section class="tabpage" id="tab-ficha">
+    <h2>Vehículo</h2>
+    <table class="spec" id="spec"></table>
+    <p class="note">C = confirmado · S = fuente secundaria · E = estimado. Cotas del modelo en
+      <span class="mono">src/a3/spec.py</span>.</p>
+  </section>
+</aside>
+
+<div id="tag"><b></b><small></small></div>
+<div id="sel"><div class="eyebrow" id="sel-g"></div><b id="sel-n"></b><small id="sel-o"></small>
+  <div class="acts"><button class="chip" id="sel-focus">Encuadrar</button><button class="chip" id="sel-iso">Aislar grupo</button><button class="chip" id="sel-x">Cerrar</button></div></div>
+<div id="help">Arrastra para girar · pellizca o rueda para acercar · dos dedos para desplazar · toca una pieza para identificarla</div>
+
+<div id="explode">
+  <div class="row"><label for="ex">Vista despiezada</label><output id="exv" class="mono">montado</output></div>
+  <div class="ruler"><div class="track"></div><div class="fill" id="exfill"></div><div class="ticks"></div>
+    <div class="knob" id="exknob"></div>
+    <span class="lbl" style="left:0%;transform:none">0</span><span class="lbl" style="left:50%">0,5</span><span class="lbl" style="left:100%;transform:translateX(-100%)">1</span>
+    <input id="ex" type="range" min="0" max="1" step="0.001" value="0" aria-label="Separación de piezas"></div>
+</div>
+
+<div id="load"><div class="box"><div class="eyebrow">Gemelo digital</div><h1>Audi A3 Sportback 8V</h1>
+  <div class="bar"><i id="loadbar"></i></div>
+  <div class="st"><span id="loadtxt">Preparando…</span><span id="loadmb" class="mono"></span></div></div></div>
+
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
@@ -48,100 +263,420 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
-const MODEL = new URLSearchParams(location.search).get('model') || 'models/a3_sportback_8v.glb';
-const canvas = document.getElementById('c');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+const params = new URLSearchParams(location.search);
+const MODEL = params.get('model') || 'models/a3_sportback_8v.glb';
+const $ = (id) => document.getElementById(id);
+
+// ---------------------------------------------------------------- renderer / scene
+const canvas = $('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.0;
 renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x15171a);
+const BG_DAY = new THREE.Color(0x1b1c1e), BG_NIGHT = new THREE.Color(0x07080a);
+scene.background = BG_DAY.clone();
 const pmrem = new THREE.PMREMGenerator(renderer);
-scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+const envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environment = envTex;
 
-const camera = new THREE.PerspectiveCamera(35, 1, 0.02, 200);
+const camera = new THREE.PerspectiveCamera(32, 1, 0.02, 200);
 const controls = new OrbitControls(camera, canvas);
-controls.enableDamping = true;
-controls.target.set(0, 0.6, 0);
+controls.enableDamping = true; controls.dampingFactor = 0.08;
+controls.minDistance = 0.25; controls.maxDistance = 22;
+controls.maxPolarAngle = Math.PI * 0.495;
+controls.target.set(-1.29, 0.6, 0);
 
-// ground with soft contact shadow
-const ground = new THREE.Mesh(new THREE.CircleGeometry(12, 64),
-  new THREE.MeshStandardMaterial({ color: 0x2a2c30, roughness: 0.9 }));
-ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
-const sun = new THREE.DirectionalLight(0xffffff, 1.6);
-sun.position.set(4, 8, 3); sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
-Object.assign(sun.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4 });
-scene.add(sun);
+// floor: soft radial gradient disc that receives the car's shadow
+const floorMat = new THREE.ShaderMaterial({
+  transparent: true, depthWrite: false,
+  uniforms: { night: { value: 0 } },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }',
+  fragmentShader: `varying vec2 vUv; uniform float night;
+    void main(){ float d = distance(vUv, vec2(.5)) * 2.; float a = smoothstep(1., .15, d);
+      vec3 c = mix(vec3(.20,.205,.215), vec3(.05,.055,.06), night);
+      gl_FragColor = vec4(c, a * .9); }`
+});
+const floor = new THREE.Mesh(new THREE.CircleGeometry(9, 96), floorMat);
+floor.rotation.x = -Math.PI / 2; floor.position.set(-1.29, -0.001, 0); scene.add(floor);
+const shadowFloor = new THREE.Mesh(new THREE.PlaneGeometry(14, 10), new THREE.ShadowMaterial({ opacity: 0.45 }));
+shadowFloor.rotation.x = -Math.PI / 2; shadowFloor.position.set(-1.29, 0.0005, 0);
+shadowFloor.receiveShadow = true; scene.add(shadowFloor);
 
-// glTF is Y-up: model X forward -> three +X, model +Y (left) -> three -Z
+const hemi = new THREE.HemisphereLight(0xffffff, 0x303030, 0.35); scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xffffff, 1.4);
+sun.position.set(1.5, 9, 3.5); sun.target.position.set(-1.29, 0, 0);
+sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0004;
+sun.shadow.normalBias = 0.02;
+Object.assign(sun.shadow.camera, { left: -3.8, right: 3.8, top: 3.2, bottom: -3.2, near: 1, far: 20 });
+scene.add(sun, sun.target);
+
+// ---------------------------------------------------------------- data
+// glTF is Y-up: vehicle +X (forward) -> three +X, vehicle +Y (left) -> three -Z
+const CX = -1.2855;
 const VIEWS = {
-  'Frontal 3/4': [[4.8, 1.5, -3.6], [0, 0.6, 0]],
-  'Trasera 3/4': [[-5.0, 1.7, -3.4], [-0.4, 0.6, 0]],
-  'Lateral': [[1.3, 0.8, -7.5], [-1.3, 0.6, 0]],
-  'Puesto conductor': [[-1.55, 1.12, -0.37], [-0.4, 0.95, -0.3]],
-  'Plazas traseras': [[-2.4, 1.15, 0.0], [-0.6, 0.85, 0.0]],
-  'Llanta': [[0.4, 0.4, -2.0], [0, 0.32, -0.75]],
+  'Frontal 3/4': [[CX + 5.8, 1.45, -4.4], [CX + 0.15, 0.58, 0]],
+  'Trasera 3/4': [[CX - 5.9, 1.65, -4.3], [CX - 0.15, 0.6, 0]],
+  'Lateral': [[CX, 0.75, -8.6], [CX, 0.62, 0]],
+  'Frontal': [[7.6, 0.85, 0], [0, 0.6, 0]],
+  'Trasera': [[-10.2, 1.0, 0], [-3.0, 0.62, 0]],
+  'Cenital': [[CX - 0.01, 10.5, 0], [CX, 0, 0]],
+  'Conductor': [[-1.63, 1.13, -0.37], [-0.55, 0.92, -0.33]],
+  'Plazas traseras': [[-2.55, 1.15, 0.0], [-0.7, 0.85, 0.0]],
+  'Maletero': [[-5.0, 1.55, -0.2], [-3.0, 0.7, 0.0]],
+  'Llanta': [[0.55, 0.42, -2.05], [0, 0.32, -0.76]],
 };
-const PAINTS = { 'Blanco Ibis': 0xf2f2ee, 'Blanco Glaciar met.': 0xe9ebea,
-                 'Negro Mito': 0x0b0b0c, 'Rojo Misano': 0xb00d1d };
-let paintMats = [], lampMats = [], car;
+const PAINTS = [
+  { n: 'Blanco Ibis', c: 0xf2f2ee, m: 0.0, r: 0.30 },
+  { n: 'Blanco Glaciar met.', c: 0xe6e8e7, m: 0.45, r: 0.28 },
+  { n: 'Gris Daytona perl.', c: 0x55585c, m: 0.6, r: 0.30 },
+  { n: 'Negro Mythos met.', c: 0x0c0c0e, m: 0.5, r: 0.25 },
+  { n: 'Rojo Misano perl.', c: 0xa40d1c, m: 0.4, r: 0.28 },
+  { n: 'Azul Sepang perl.', c: 0x1b2f63, m: 0.55, r: 0.28 },
+];
+const SPEC = [
+  ['Modelo', 'Audi A3 Sportback 8V (8VA), pre-restyling', 'C'],
+  ['Motor', '2.0 TDI 110 kW (150 CV), 320 N·m', 'C'],
+  ['Cambio / tracción', 'S tronic 6 vel. · delantera', 'C'],
+  ['Acabado', 'S line (suspensión deportiva −15 mm)', 'C'],
+  ['Longitud', '4 310 mm', 'C'], ['Anchura', '1 785 mm (1 966 con retrovisores)', 'C/S'],
+  ['Altura', '1 410 mm (S line)', 'S'], ['Batalla', '2 636 mm', 'C'],
+  ['Vías del. / tras.', '1 535 / 1 506 mm', 'C'], ['Voladizos del. / tras.', '869 / 805 mm', 'S'],
+  ['Llantas', 'Audi exclusive 18″ 5-arm rotor · 8J × 18 ET46 · 5 × 112', 'C/S'],
+  ['Neumáticos', '225/40 R18 92Y', 'C'],
+  ['Frenos del. / tras.', 'Ø312 × 25 ventilado / Ø272 × 10', 'S/E'],
+  ['Cx', '0,30–0,31', 'C'],
+  ['Interior', 'Cuero negro, volante de 4 radios, MMI emergente, climatizador bizona', 'C'],
+];
 
-function setView(name) {
-  const [p, t] = VIEWS[name];
-  camera.position.set(...p); controls.target.set(...t); controls.update();
-  document.querySelectorAll('#views button').forEach(b => b.classList.toggle('on', b.textContent === name));
+// ---------------------------------------------------------------- UI helpers
+function setSwitch(el, on) { el.setAttribute('aria-checked', on ? 'true' : 'false'); }
+const isNarrow = () => matchMedia('(max-width: 860px), (max-height: 560px)').matches;
+$('menu').onclick = () => $('panel').classList.remove('hidden');
+document.querySelector('#panel .close').onclick = () => $('panel').classList.add('hidden');
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.tabs button').forEach(x => x.setAttribute('aria-selected', x === b));
+  document.querySelectorAll('.tabpage').forEach(p => p.classList.toggle('on', p.id === 'tab-' + b.dataset.tab));
+});
+$('spec').innerHTML = SPEC.map(([k, v, s]) =>
+  `<tr><td>${k}</td><td>${v}<span class="src mono">${s}</span></td></tr>`).join('');
+
+// camera tween
+let tween = null;
+function flyTo(pos, target, ms = 700) {
+  const p0 = camera.position.clone(), t0 = controls.target.clone();
+  const p1 = new THREE.Vector3(...pos), t1 = new THREE.Vector3(...target);
+  const start = performance.now();
+  tween = (now) => {
+    let k = Math.min(1, (now - start) / ms);
+    k = 1 - Math.pow(1 - k, 3);
+    camera.position.lerpVectors(p0, p1, k); controls.target.lerpVectors(t0, t1, k);
+    if (k >= 1) tween = null;
+  };
+}
+const INSIDE = new Set(['Conductor', 'Plazas traseras']);
+function setView(name, ms) {
+  let [p, t] = VIEWS[name];
+  // narrow / portrait screens: back the camera off so the whole car fits
+  const a = innerWidth / innerHeight;
+  if (!INSIDE.has(name) && a < 1.3) {
+    const f = Math.pow(1.3 / a, 0.9);
+    p = p.map((v, i) => t[i] + (v - t[i]) * f);
+  }
+  flyTo(p, t, ms);
+  document.querySelectorAll('#views .chip').forEach(b => b.classList.toggle('on', b.textContent === name));
 }
 for (const n of Object.keys(VIEWS)) {
-  const b = document.createElement('button'); b.textContent = n; b.onclick = () => setView(n);
-  document.getElementById('views').appendChild(b);
+  const b = document.createElement('button'); b.className = 'chip'; b.textContent = n;
+  b.onclick = () => { setView(n); if (isNarrow()) $('panel').classList.add('hidden'); };
+  $('views').appendChild(b);
 }
-for (const [n, c] of Object.entries(PAINTS)) {
-  const b = document.createElement('button'); b.textContent = n;
-  b.onclick = () => { paintMats.forEach(m => m.color.setHex(c)); };
-  document.getElementById('paints').appendChild(b);
+
+// ---------------------------------------------------------------- model state
+let car = null;
+const paintMats = new Set(), lampMats = [], glassMats = [], groups = [];
+const pickables = [];
+
+PAINTS.forEach((p, i) => {
+  const b = document.createElement('button'); b.className = 'sw' + (i === 0 ? ' on' : '');
+  b.innerHTML = `<i style="background:#${p.c.toString(16).padStart(6, '0')}"></i>${p.n}`;
+  b.onclick = () => {
+    paintMats.forEach(m => { m.color.setHex(p.c); m.metalness = p.m; m.roughness = p.r; });
+    document.querySelectorAll('.sw').forEach(x => x.classList.toggle('on', x === b));
+    $('paintname').textContent = p.n;
+  };
+  $('paints').appendChild(b);
+});
+
+let lightsOn = false, night = false;
+function applyLights() {
+  lampMats.forEach(({ m, base }) => {
+    m.emissiveIntensity = lightsOn ? base * (night ? 1.6 : 1.0) : (m.userData.alwaysOn ? base : 0);
+  });
 }
-let lightsOn = false;
-document.getElementById('lights').onclick = (e) => {
-  lightsOn = !lightsOn; e.target.classList.toggle('on', lightsOn);
-  lampMats.forEach(m => { m.emissive.copy(m.color); m.emissiveIntensity = lightsOn ? 3 : 0; });
+$('sw-lights').onclick = (e) => { lightsOn = !lightsOn; setSwitch(e.currentTarget, lightsOn); applyLights(); };
+$('sw-night').onclick = (e) => {
+  night = !night; setSwitch(e.currentTarget, night);
+  scene.background.copy(night ? BG_NIGHT : BG_DAY);
+  scene.environmentIntensity = night ? 0.15 : 1.0;
+  sun.intensity = night ? 0.12 : 1.4; hemi.intensity = night ? 0.05 : 0.35;
+  floorMat.uniforms.night.value = night ? 1 : 0;
+  if (night && !lightsOn) $('sw-lights').click(); else applyLights();
 };
 let spin = false;
-document.getElementById('rotate').onclick = (e) => { spin = !spin; e.target.classList.toggle('on', spin); };
+$('sw-spin').onclick = (e) => { spin = !spin; setSwitch(e.currentTarget, spin); controls.autoRotate = spin; };
+controls.autoRotateSpeed = 0.6;
+let tinted = false;
+$('sw-tint').onclick = (e) => {
+  tinted = !tinted; setSwitch(e.currentTarget, tinted);
+  glassMats.forEach(({ m, rear }) => { if (rear) { m.opacity = tinted ? 0.78 : m.userData.op0;
+    m.color.setHex(tinted ? 0x101312 : m.userData.c0); } });
+};
 
+// ---------------------------------------------------------------- explode
+let exTarget = 0, exNow = 0;
+function setExplodeUI(v) {
+  $('exfill').style.width = (v * 100) + '%';
+  $('exknob').style.left = (v * 100) + '%';
+  $('exv').textContent = v < 0.005 ? 'montado' : (v > 0.995 ? 'despiezado' : (v * 100).toFixed(0) + ' %');
+}
+$('ex').addEventListener('input', (e) => { exTarget = parseFloat(e.target.value); setExplodeUI(exTarget); });
+setExplodeUI(0);
+function updateExplode(dt) {
+  if (Math.abs(exTarget - exNow) < 1e-4) return false;
+  exNow += (exTarget - exNow) * Math.min(1, dt * 12);
+  if (Math.abs(exTarget - exNow) < 1e-4) exNow = exTarget;
+  // ease the motion so heavy panels start slowly and doors swing out first
+  for (const g of groups) {
+    const k = THREE.MathUtils.smootherstep(exNow, g.delay, g.delay + (1 - g.delay));
+    g.node.position.copy(g.p0).addScaledVector(g.dir, k);
+  }
+  return true;
+}
+
+// ---------------------------------------------------------------- picking
+const ray = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+let hoverObj = null, selObj = null, selSaved = null;
+const tag = $('tag');
+function pick(clientX, clientY) {
+  if (!car) return null;
+  const r = canvas.getBoundingClientRect();
+  // raycasting must use the same (offset) projection as the render
+  ndc.set(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const hits = ray.intersectObjects(pickables, false);
+  for (const h of hits) {
+    if (!h.object.visible || !isVisibleChain(h.object)) continue;
+    const m = h.object.material;
+    if (m && m.transparent && m.opacity < 0.3 && !m.userData.isGlass) continue;
+    return h.object;
+  }
+  return null;
+}
+function isVisibleChain(o) { for (let p = o; p; p = p.parent) if (!p.visible) return false; return true; }
+function groupOf(o) { for (let p = o; p; p = p.parent) if (p.userData && p.userData.explode) return p; return null; }
+function labelOf(o) { for (let p = o; p; p = p.parent) if (p.userData && p.userData.label) return p.userData.label; return o.name; }
+function showTag(o, x, y) {
+  if (!o) { tag.classList.remove('on'); return; }
+  const g = groupOf(o);
+  tag.querySelector('b').textContent = labelOf(o);
+  tag.querySelector('small').textContent = g ? g.userData.label : '';
+  const w = tag.offsetWidth, h = tag.offsetHeight;
+  let tx = x + 16, ty = y + 16;
+  if (tx + w > innerWidth - 8) tx = x - w - 16;
+  if (ty + h > innerHeight - 8) ty = y - h - 16;
+  tag.style.transform = `translate(${tx}px, ${ty}px)`;
+  tag.classList.add('on');
+}
+const HL = new THREE.Color(0xd0283a);
+function highlight(o, on) {
+  if (!o) return;
+  if (on) {
+    selSaved = o.material;
+    const m = o.material.clone();
+    m.emissive = HL.clone(); m.emissiveIntensity = 0.55;
+    if (m.emissiveMap) m.emissiveMap = null;
+    o.material = m;
+  } else if (selSaved) { o.material.dispose(); o.material = selSaved; selSaved = null; }
+}
+function select(o) {
+  highlight(selObj, false); selObj = o; highlight(o, true);
+  const box = $('sel');
+  if (!o) { box.classList.remove('on'); $('help').style.display = ''; return; }
+  const g = groupOf(o);
+  $('sel-g').textContent = g ? g.userData.label : 'Pieza';
+  $('sel-n').textContent = labelOf(o);
+  $('sel-o').textContent = o.name.replace(/_/g, ' ');
+  box.classList.add('on'); $('help').style.display = 'none';
+}
+function focusOn(obj) {
+  const box = new THREE.Box3().setFromObject(obj);
+  if (box.isEmpty()) return;
+  const c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3()).length();
+  const dir = camera.position.clone().sub(controls.target).normalize();
+  const dist = Math.max(0.45, s * 1.25 / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * 0.5);
+  flyTo(c.clone().addScaledVector(dir, dist).toArray(), c.toArray());
+}
+$('sel-focus').onclick = () => selObj && focusOn(selObj);
+$('sel-x').onclick = () => { isolate(null); select(null); };
+let isolated = null;
+function isolate(g) {
+  isolated = (isolated === g) ? null : g;
+  for (const gr of groups) gr.node.visible = !isolated || gr.node === isolated;
+  syncGroupChecks();
+  $('sel-iso').textContent = isolated ? 'Mostrar todo' : 'Aislar grupo';
+}
+$('sel-iso').onclick = () => { const g = selObj && groupOf(selObj); if (g) isolate(g); };
+
+let down = null;
+canvas.addEventListener('pointerdown', (e) => { down = { x: e.clientX, y: e.clientY, t: performance.now() }; });
+canvas.addEventListener('pointerup', (e) => {
+  if (!down) return;
+  const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y);
+  if (moved < 6 && performance.now() - down.t < 500) {
+    const o = pick(e.clientX, e.clientY);
+    select(o);
+    if (e.pointerType !== 'mouse') { showTag(o, e.clientX, e.clientY); clearTimeout(tagTimer); tagTimer = setTimeout(() => showTag(null), 1800); }
+  }
+  down = null;
+});
+let tagTimer = 0, hoverPending = null;
+canvas.addEventListener('pointermove', (e) => {
+  if (e.pointerType !== 'mouse' || e.buttons) { if (e.buttons) showTag(null); return; }
+  hoverPending = [e.clientX, e.clientY];
+});
+canvas.addEventListener('pointerleave', () => { hoverPending = null; showTag(null); });
+canvas.addEventListener('dblclick', (e) => { const o = pick(e.clientX, e.clientY); if (o) { select(o); focusOn(o); } });
+addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { isolate(null); select(null); }
+  if (e.key === 'e' || e.key === 'E') { exTarget = exTarget > 0.5 ? 0 : 1; $('ex').value = exTarget; setExplodeUI(exTarget); }
+});
+
+// ---------------------------------------------------------------- groups list
+function syncGroupChecks() {
+  document.querySelectorAll('#groups input').forEach((c) => { c.checked = groups[+c.dataset.i].node.visible; });
+}
+function buildGroupList() {
+  const ul = $('groups'); ul.innerHTML = '';
+  groups.slice().sort((a, b) => a.node.userData.label.localeCompare(b.node.userData.label, 'es'))
+    .forEach((g) => {
+      const i = groups.indexOf(g);
+      const li = document.createElement('li');
+      li.innerHTML = `<input type="checkbox" checked data-i="${i}" aria-label="Mostrar ${g.node.userData.label}"><span>${g.node.userData.label}</span>`;
+      li.querySelector('input').onchange = (e) => { g.node.visible = e.target.checked; };
+      li.querySelector('span').onclick = () => { focusOn(g.node); if (isNarrow()) $('panel').classList.add('hidden'); };
+      ul.appendChild(li);
+    });
+}
+
+// ---------------------------------------------------------------- load
 const draco = new DRACOLoader();
 draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/');
-const loader = new GLTFLoader(); loader.setDRACOLoader(draco);
+const loader = new GLTFLoader();
+loader.setDRACOLoader(draco);
+loader.setMeshoptDecoder(MeshoptDecoder);
+const t0 = performance.now();
 loader.load(MODEL, (gltf) => {
+  $('loadtxt').textContent = 'Preparando materiales…';
   car = gltf.scene;
-  car.traverse(o => {
+  const REAR_GLASS = /Glass_(Rear|Quarter)|Glass_RearWindow/;
+  car.traverse((o) => {
+    if (o.userData && o.userData.explode) {
+      const d = o.userData.explode;
+      // doors and wheels first, body shell last
+      const g = o.userData.group || '';
+      const delay = /puerta|rueda|faro|piloto|capo|porton/.test(g) ? 0 : (/carroceria|suelo/.test(g) ? 0.25 : 0.1);
+      groups.push({ node: o, p0: o.position.clone(), dir: new THREE.Vector3(d[0], d[1], d[2]), delay });
+    }
     if (!o.isMesh) return;
-    o.castShadow = o.receiveShadow = true;
-    const m = o.material;
-    if (!m) return;
-    if (m.name === 'Paint_Body') paintMats.push(m);
-    if (/^LED_|Gauge_Marks|Needle/.test(m.name)) lampMats.push(m);
-    if (/Glass|Lens/.test(m.name)) { m.transparent = true; m.depthWrite = false; }
+    o.castShadow = true; o.receiveShadow = true;
+    pickables.push(o);
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    for (const m of mats) {
+      if (!m) continue;
+      if (m.name === 'Paint_Body') paintMats.add(m);
+      if (/^LED_|Gauge_Marks|Needle|Screen_UI|Screen_MMI|Cluster_|Climate_LCD|Lamp_Lens_Red/.test(m.name) && m.emissive) {
+        if (!m.userData.reg) {
+          m.userData.reg = true;
+          const base = Math.max(m.emissiveIntensity || 0, /^LED_/.test(m.name) ? 4 : 1.2);
+          if (m.emissive.getHex() === 0) m.emissive.copy(m.color);
+          lampMats.push({ m, base });
+        }
+      }
+      if (/Glass|Lens/.test(m.name)) {
+        m.transparent = true; m.depthWrite = false; m.userData.isGlass = true;
+        if (!m.userData.reg2 && /Glass_Clear|Glass_Privacy/.test(m.name)) {
+          m.userData.reg2 = true; m.userData.op0 = m.opacity; m.userData.c0 = m.color.getHex();
+        }
+      }
+    }
+    if (REAR_GLASS.test(o.name)) {
+      // rear glazing gets its own material so "privacy glass" only affects it
+      const m = o.material.clone(); m.userData = { op0: m.opacity, c0: m.color.getHex(), isGlass: true };
+      o.material = m; glassMats.push({ m, rear: true });
+    }
   });
+  applyLights();
   scene.add(car);
-  document.getElementById('status').textContent = 'Arrastra para orbitar · rueda para zoom';
-  setView('Frontal 3/4');
+  buildGroupList();
+  setView('Frontal 3/4', 1);
+  $('loadtxt').textContent = `Listo en ${((performance.now() - t0) / 1000).toFixed(1)} s`;
+  $('loadbar').style.width = '100%';
+  requestAnimationFrame(() => setTimeout(() => $('load').classList.add('done'), 250));
+  if (!isNarrow()) $('panel').classList.remove('hidden');
+  resize();
+  dirty = true;
+  window.__ready = true;
 }, (e) => {
-  if (e.total) document.getElementById('status').textContent =
-    `Cargando modelo… ${(100 * e.loaded / e.total).toFixed(0)} %`;
-}, (err) => { document.getElementById('status').textContent = 'Error cargando ' + MODEL; console.error(err); });
+  const mb = (v) => (v / 1048576).toFixed(1);
+  if (e.total) {
+    $('loadbar').style.width = (100 * e.loaded / e.total).toFixed(1) + '%';
+    $('loadtxt').textContent = 'Descargando modelo completo';
+    $('loadmb').textContent = `${mb(e.loaded)} / ${mb(e.total)} MB`;
+  } else {
+    $('loadtxt').textContent = 'Descargando modelo completo';
+    $('loadmb').textContent = `${mb(e.loaded)} MB`;
+  }
+}, (err) => {
+  $('loadtxt').textContent = 'No se pudo cargar ' + MODEL; console.error(err);
+});
 
+// ---------------------------------------------------------------- loop
 function resize() {
   const w = innerWidth, h = innerHeight;
-  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+  renderer.setSize(w, h, false); camera.aspect = w / h;
+  camera.fov = w < h ? 46 : 32;
+  // keep the car centred in the area not covered by the side panel (desktop / iPad landscape)
+  const panelOpen = !isNarrow() && !$('panel').classList.contains('hidden');
+  const shift = panelOpen ? ($('panel').offsetWidth + 16) / 2 : 0;
+  if (shift) camera.setViewOffset(w, h, shift, 0, w, h); else camera.clearViewOffset();
+  camera.updateProjectionMatrix();
 }
-addEventListener('resize', resize); resize();
+addEventListener('resize', () => { resize(); dirty = true; }); resize();
+// render on demand: only when the view or the scene changed (battery on iPad)
+const clock = new THREE.Clock();
+let dirty = true;
+window.invalidate = () => { dirty = true; };
+controls.addEventListener('change', () => { dirty = true; });
+for (const ev of ['input', 'click', 'change']) document.addEventListener(ev, () => { dirty = true; }, true);
 renderer.setAnimationLoop(() => {
-  if (spin && car) car.rotation.y += 0.003;
-  controls.update(); renderer.render(scene, camera);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  if (tween) { tween(performance.now()); dirty = true; }
+  if (updateExplode(dt)) dirty = true;
+  if (hoverPending) { const [x, y] = hoverPending; hoverPending = null;
+    const o = pick(x, y); if (o !== hoverObj) dirty = true; hoverObj = o; showTag(o, x, y);
+    canvas.style.cursor = o ? 'pointer' : ''; }
+  if (controls.update()) dirty = true;
+  if (!dirty) return;
+  dirty = false;
+  renderer.render(scene, camera);
+  window.__frames = (window.__frames || 0) + 1;
 });
 </script>
 </body>
