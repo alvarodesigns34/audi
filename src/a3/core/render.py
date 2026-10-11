@@ -163,6 +163,7 @@ def cabin_fill(strength=1.0):
         ob = bpy.data.objects.new(name, L)
         ob.location = loc
         ob.visible_camera = False      # light only, never seen as a white panel
+        ob.visible_glossy = False      # nor reflected in the windscreen
         col.objects.link(ob)
         out.append(ob)
     return out

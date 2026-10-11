@@ -88,22 +88,8 @@ def _grille(ctx, surf):
         grid = np.array([[p + np.array([pr[0], 0.0, pr[1]]) for pr in prof] for p in path])
         mesh.grid_object(f"Grille_Slat_{k:02d}", grid, closed_v=True, cap_u=True,
                          collection=COL, material=black)
-    # vertical rib grid behind the slats (titanium black, S line)
-    for y in np.arange(-0.38, 0.381, 0.0475):
-        top = g_hi - 0.010
-        bot = g_lo + 0.010
-        pts = []
-        for z in np.linspace(bot, top, 30):
-            if abs(y) > _poly_halfwidth(op.GRILLE, z * 1000) - 0.01:
-                continue
-            p, n = _face_x(surf, y, z)
-            if p is not None:
-                pts.append((p[0] - 0.048, y, z))
-        if len(pts) > 3:
-            mesh.sweep_profile(f"Grille_Rib_{y:+.3f}", np.array(pts),
-                               np.array([[-0.002, -0.012], [0.002, -0.012], [0.002, 0.012],
-                                         [-0.002, 0.012]]),
-                               collection=COL, material=back, smooth=False)
+    # (v0.3: no vertical ribs - the S line grille shows only the horizontal
+    # gloss-black bars in front of a dark back panel, front.jpg / sline_front)
     return P
 
 
@@ -195,12 +181,20 @@ def _hex_insert(name, surf, outline_mm, mirror, mat, cell=0.018, wall=0.0024,
     poly = np.asarray(outline_mm, float) * 1e-3
     if mirror:
         poly = poly * [-1, 1]
+    # keep whole cells inside the opening: test the centres against the
+    # outline shrunk by the cell radius
+    shrink = cell / 2 + 0.002
+    sp = mesh.polyline_offset_2d(poly, -shrink if mesh.polygon_area(poly) > 0 else shrink)
+    if abs(mesh.polygon_area(sp)) < abs(mesh.polygon_area(poly)):
+        poly_test = sp
+    else:
+        poly_test = mesh.polyline_offset_2d(poly, shrink if mesh.polygon_area(poly) > 0 else -shrink)
 
     def inside(y, z):
         c = False
-        n = len(poly)
+        n = len(poly_test)
         for i in range(n):
-            (y0, z0), (y1, z1) = poly[i], poly[(i + 1) % n]
+            (y0, z0), (y1, z1) = poly_test[i], poly_test[(i + 1) % n]
             if (z0 > z) != (z1 > z):
                 yi = y0 + (z - z0) * (y1 - y0) / (z1 - z0)
                 if y < yi:
@@ -310,20 +304,20 @@ def _side_vent(ctx, ref, surf):
     for side, sfx in ((1, ".L"), (-1, ".R")):
         y0, y1 = (0.80, 1.0) if side > 0 else (-1.0, -0.80)
         pan = st.patch(ref, poly, "XZ", y0, y1, "Bumper_SideVent" + sfx, COL, paint)
-        st.offset(pan, -0.010)
+        st.offset(pan, -0.006)
         mesh.shade_smooth(pan, 40)
         # walls: outline on the skin -> 10 mm in
         dense = resample(catmull_rom(poly, 6, closed=True), 160, closed=True)
         P, N = st.clean_projection(*surf.project(dense, "XZ", side=side))
         if len(P) > 10:
-            walls = np.array([P + N * 0.0005, P - N * 0.011])
+            walls = np.array([P + N * 0.0005, P - N * 0.007])
             mesh.grid_object("Bumper_SideVent_Wall" + sfx, walls, closed_v=True, collection=COL,
                              material=paint, flip=side < 0)
         # black slot (lower rear corner of the inset)
         slot = np.array([(0.452, 0.286), (0.465, 0.263), (0.502, 0.268), (0.522, 0.300),
                          (0.470, 0.300)])
         sl = st.patch(ref, slot, "XZ", y0, y1, "Bumper_SideVent_Slot" + sfx, COL, black)
-        st.offset(sl, -0.0105)
+        st.offset(sl, -0.0065)
 
 
 def _washer_sensors(ctx, surf):

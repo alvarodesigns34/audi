@@ -26,6 +26,7 @@ PARTS = [
     ("underbody", "a3.exterior.underbody"),
     ("chassis", "a3.exterior.chassis"),
     ("engine", "a3.exterior.engine"),
+    ("engine_bay", "a3.exterior.engine_bay"),
     ("interior", "a3.interior.assembly"),
     ("boot", "a3.interior.boot"),
     ("assembly", "a3.groups"),          # panels, exploded-view groups, labels

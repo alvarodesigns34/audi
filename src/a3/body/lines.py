@@ -157,8 +157,12 @@ K5_Z = [(800, 744), (798, 740), (796, 734), (792, 729), (765, 727), (700, 728),
 K6_W = [(787, 0), (783, 120), (770, 260), (740, 400), (690, 500), (600, 560),
         (300, 600), (0, 640), (-250, 700), (-400, 765), (-470, 795), (-545, 805),
         (-800, 806), (-1600, 803), (-2000, 783), (-2450, 735), (-2800, 730),
-        (-2950, 712), (-3080, 668), (-3180, 600), (-3270, 480), (-3330, 320),
-        (-3365, 160), (-3385, 0)]
+        (-2950, 714), (-3050, 690), (-3100, 681), (-3150, 656), (-3200, 614),
+        (-3250, 549), (-3300, 459), (-3330, 338), (-3365, 160), (-3385, 0)]
+# v0.3: behind the quarter light K6 is only a construction point of the
+# D-pillar / tailgate face between the lamps (K5) and the glass (K7): kept 4 mm
+# outside the K5-K7 chord (the v0.3 first cut left it up to 33 mm inside, a
+# concave fold visible as a notch in the rear 3/4 silhouette)
 K6_Z = [(787, 754), (740, 760), (600, 780), (300, 828), (0, 868),
         (-250, 902), (-400, 936), (-470, 935), (-545, 928), (-1000, 949),
         (-1500, 971), (-2000, 993), (-2400, 1007), (-2800, 1018), (-2950, 1008),
@@ -194,7 +198,7 @@ K7_Z = [(780, 756), (700, 768), (400, 815), (0, 875), (-300, 925),
 # Crease strength at K6 / K7 (1 = sharp glass/roof junction, 0 = smooth, e.g.
 # on the hood and on the tailgate where those points are only construction
 # points of the surface).
-K6_CREASE = [(787, 0), (-380, 0), (-470, 1), (-3330, 1), (-3380, 1)]
+K6_CREASE = [(787, 0), (-380, 0), (-470, 1), (-2780, 1), (-2900, 0), (-3380, 0)]
 K7_CREASE = [(780, 0), (-330, 0), (-430, 1), (-3330, 1), (-3352, 1)]
 # lift of the section tangent leaving K7 towards the roof (deg): 0 along the
 # cabin (roof side rail), rising behind the C-pillar where the roof spoiler sits

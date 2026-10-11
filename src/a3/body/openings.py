@@ -367,11 +367,11 @@ SIDE_INTAKE = [(479, 424), (600, 436), (700, 445), (790, 446), (827, 444), (856,
                (620, 270), (517, 268), (450, 282), (423, 303), (440, 340), (452, 364)]
 # headlight washer cover (front view y/z outline, S): a rounded parallelogram
 WASHER_COVER_YZ = [(640, 485), (642, 541), (744, 545), (738, 491)]
-FOG_CENTRE = (795, 386)  # fog lamp centre (y, z), S (sline_front ray casts)
-FOG_SIZE = (88, 46)      # (w, h) mm, S
+FOG_CENTRE = (792, 396)  # fog lamp centre (y, z), S (sline_front ray casts)
+FOG_SIZE = (80, 34)      # (w, h) mm, S
 # S line intake blade (gloss black): from the pointed inner tip on the bumper
 # face next to the grille, rising slightly outwards (y, z mm, S)
-BLADE = [(359, 348), (450, 355), (630, 364), (741, 378), (816, 386), (863, 389)]
+BLADE = [(359, 348), (450, 355), (630, 362), (741, 368), (816, 371), (863, 373)]
 BLADE_Z = 360            # (v0.2, kept for reference)
 FRONT_SENSORS = [(726, 777, 500)]   # (x, y, z) outer front parking sensor, S
 # S line bumper side "air curtain" inset (side view x/z, S): recessed painted

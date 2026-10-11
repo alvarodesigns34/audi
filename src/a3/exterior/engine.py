@@ -62,14 +62,12 @@ def _engine(ctx):
         cy = y - 0.132 + k * 0.088
         _place(g.lathe(f"Engine_Injector_{k}", [(0, 0), (0.012, 0), (0.012, 0.05), (0, 0.05)],
                        origin=(0.05, cy, 0.39), axis=(0, 0, 1), segments=12, col=COL, mat=chrome))
-    # plastic engine cover with "TDI" lettering
-    cov = g.pillow("Engine_Cover", (0.36, 0.50, 0.055), (0.03, y + 0.01, 0.445), (3.2, 3.2, 2.2), 14,
-                   COL, cover)
-    _place(cov)
+    # plastic engine cover: exterior/engine_bay.py (sculpted shell); the TDI
+    # lettering sits on it
     t = g.text_mesh("Engine_Cover_Text", "TDI", size=0.06, col=COL, mat=ctx.mat("chrome"),
                     extrude=0.002, bold=True)
-    t.data.transform(g.frame((0.05, y + 0.06, 0.474), (0, 0, 1), (0, 1, 0)))
-    _place(t)
+    t.data.transform(g.frame((0.06, -0.15, 0.842), (0.10, 0, 0.995), (0, 1, 0)))
+    t.data.update()
     # timing belt cover at the right end, crank pulley and accessory drive
     belt = [(0.17, -0.12), (0.17, 0.28), (0.10, 0.40), (-0.10, 0.40), (-0.16, 0.26), (-0.16, -0.12),
             (0.0, -0.18)]
@@ -137,7 +135,7 @@ def _bay(ctx):
     # strut towers and inner fender aprons (painted body)
     for s in (1, -1):
         sfx = "L" if s > 0 else "R"
-        g.lathe(f"Strut_Tower_{sfx}", [(0.13, 0.0), (0.12, 0.18), (0.085, 0.27), (0.0, 0.28)],
+        g.lathe(f"Strut_Tower_{sfx}", [(0.13, 0.0), (0.125, 0.18), (0.125, 0.26)],
                 origin=(-0.025, s * 0.565, 0.53), axis=(0, 0, 1), segments=40, col=COL, mat=paint)
         apron = [np.array([(x, s * 0.62, z) for z in np.linspace(0.36, 0.73, 6)])
                  for x in np.linspace(0.62, -0.34, 12)]
