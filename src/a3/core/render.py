@@ -109,6 +109,7 @@ VIEWS = {
     "tl_close": dict(loc=(-4.9, 1.9, 1.15), target=(-3.20, 0.62, 0.88), lens=55),
     "rear_close": dict(loc=(-6.4, 1.2, 1.55), target=(-3.20, 0.0, 0.95), lens=45),
     "intake_close": dict(loc=(2.6, 1.5, 0.55), target=(0.75, 0.70, 0.38), lens=55),
+    "rear34_close": dict(loc=(-5.6, 2.2, 1.65), target=(-3.15, 0.35, 1.05), lens=50),
     "side_close": dict(loc=(-1.8, 3.6, 0.85), target=(-1.8, 0.85, 0.75), lens=35),
     "cockpit": dict(loc=(-1.75, 0.37, 1.12), target=(-0.6, 0.15, 0.85), lens=24, fill=True),
     "interior_rear": dict(loc=(-2.9, 0.0, 1.20), target=(-0.8, 0.0, 0.80), lens=20, fill=True),

@@ -629,7 +629,7 @@ loader.load(MODEL, (gltf) => {
       // (diamond-cut wheel faces) would render black
       if (m.anisotropy > 0 && !o.geometry.attributes.uv) m.anisotropy = 0;
       if (m.name === 'Paint_Body') paintMats.add(m);
-      if (/^LED_|Gauge_Marks|Needle|Screen_UI|Screen_MMI|Cluster_|Climate_LCD|Lamp_Lens_Red/.test(m.name) && m.emissive) {
+      if (/^LED_|Lamp_LightGuide|Gauge_Marks|Needle|Screen_UI|Screen_MMI|Cluster_|Climate_LCD|Lamp_Lens_Red/.test(m.name) && m.emissive) {
         if (!m.userData.reg) {
           m.userData.reg = true;
           const base = Math.max(m.emissiveIntensity || 0, /^LED_/.test(m.name) ? 4 : 1.2);
