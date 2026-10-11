@@ -258,7 +258,7 @@ def _spoiler(ctx, ref, surf):
     full = resample(catmull_rom(full, 10), 141)
     # the lip only runs across the glass (|y| < 0.53); the spoiler ends at the
     # corners are body (they would otherwise hang down the D-pillars)
-    full = full[np.abs(full[:, 1]) < 0.53]
+    full = full[np.abs(full[:, 1]) < 0.575]
     gtop = np.asarray(op.REAR_GLASS_TOP, float) * 1e-3
     secs, tes = [], []
     for k, (x, y) in enumerate(full):
@@ -272,8 +272,8 @@ def _spoiler(ctx, ref, surf):
         t = np.array([full[j1, 0] - full[j0, 0], full[j1, 1] - full[j0, 1], 0.0])
         t /= np.linalg.norm(t) + 1e-12
         r = np.array([-t[1], t[0], 0.0])             # rearward / outward in plan
-        u = abs(y) / 0.53
-        fade = min(1.0, (1 - u) / 0.12) if u > 0.88 else 1.0
+        u = abs(y) / 0.575
+        fade = min(1.0, (1 - u) / 0.15) if u > 0.85 else 1.0
         over = (0.026 * (1 - u ** 4) + 0.006) * fade + 0.001
         drop = (0.030 * (1 - u ** 3) + 0.010) * fade + 0.002
         zc = P[2]
@@ -313,10 +313,17 @@ def _wiper_antenna(ctx, surf):
     (-y) side (sline_rear, rear2012, fl_rear), pivot near the centre; arm length
     ~400 mm, blade 330 mm (E)."""
     black, rubber = ctx.mat("black_satin"), ctx.mat("rubber_seal")
-    eye = np.asarray(op.REAR_EYE, float)
+    # parked line: 15 mm (in x, ~35 mm up the glass) above the glass bottom
+    # edge, found in the radial chart of the rear (no projection that could
+    # jump off the glass)
+    B = np.asarray(op.REAR_GLASS_BOTTOM, float)[::-1] * 1e-3     # centre -> corner
     ys = np.linspace(0.02, -0.43, 40)
-    guide = np.array([(-3.30, y, 1.066 + 0.010 * (y / 0.43) ** 2) for y in ys])
-    P, N = op.project_from(surf, guide, eye)
+    xb = np.interp(np.abs(ys), B[:, 1], B[:, 0]) + 0.015
+    zb = np.interp(np.abs(ys), B[:, 1], B[:, 2]) + 0.035
+    P, N = op.radial_cast(surf, op.to_xth(np.stack([xb, ys, zb], 1)) * [1, 1])
+    if len(P):
+        out = ((P - [0, 0, op.RADIAL_Z]) * N)[:, 1:].sum(1) < 0
+        N[out] *= -1
     if len(P) > 5:
         arm = P + N * 0.016
         mesh.sweep_profile("Rear_Wiper_Arm", arm,
