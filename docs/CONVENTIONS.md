@@ -41,6 +41,15 @@ def build(ctx):            # ctx: a3.build.BuildContext
 - Cotas en el código en mm convertidas con `spec.m()` o escritas en metros con comentario.
 - Cada cota relevante: comentario con su origen (C confirmado / S fuente secundaria / E estimada).
 
+## Carrocería (cortes y medidas)
+- Las aberturas y juntas se cortan con `shell.guarded_cut` (booleana EXACT verificada). Un
+  cortador nuevo debe ser un sólido cerrado que no solape a otros cortadores (las juntas se cortan
+  antes que las aberturas y se recortan con `openings.clip_to_arches`).
+- Contornos medidos: en 3D (x, y, z mm, lado izquierdo) cuando la zona envuelve una esquina
+  (pilotos, luneta, juntas del portón); en la luneta se usa la carta radial `openings.to_xth`.
+- Cada dato medido lleva en el comentario la foto y el método (triangulación / ray casting) y su
+  estado (C/S/E).
+
 ## Publicación
 - `docs/` es la web de GitHub Pages (rama `main`, carpeta `/docs`): `docs/index.html` (visor
   Three.js), `docs/models/*.glb|*.usdz` (calidad completa, nunca simplificados), `docs/renders/`.

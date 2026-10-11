@@ -10,6 +10,6 @@ $PY tools/run.py --glb docs/models/a3_sportback_8v.glb --no-draco \
 $PY tools/run.py --views front34 --explode 1.0 --tag exploded_ --out docs/renders \
     --samples ${SAMPLES:-64} --res 1600x900
 $PY tools/run.py --views bay --tag engine_ --out docs/renders --samples ${SAMPLES:-64} --res 1600x900 \
-    --hide "^Body_Hood$|^Body_Cowl$|^Glass_Windscreen|^Wiper|^Seal_Wind"
+    --hide "^Body_Hood$|^Body_Cowl$|^Glass_Windscreen|^Wiper|^Seal_Wind|^Bonnet_"
 $PY tools/export_usdz.py docs/models/a3_sportback_8v.usdz
 ls -la docs/models docs/renders

@@ -1,6 +1,6 @@
 # Traspaso para una sesión nueva
 
-Estado: **v0.2** (2026-10-10). Qué hay, cómo se trabaja y qué falta: `docs/STATUS.md`.
+Estado: **v0.3** (2026-10-11). Qué hay, cómo se trabaja y qué falta: `docs/STATUS.md`.
 Convenciones de código: `docs/CONVENTIONS.md`. Uso rápido: `README.md`.
 
 ## Mapa del repositorio
@@ -16,13 +16,13 @@ Convenciones de código: `docs/CONVENTIONS.md`. Uso rápido: `README.md`.
 | `src/a3/body/shell.py` | Espesor + booleanas EXACT una a una; caché en `out/cache` |
 | `src/a3/body/panels.py` | División del casco en paneles reales |
 | `src/a3/body/glass.py` | Lunas, serigrafía y juntas |
-| `src/a3/exterior/` | Frontal, faros, zaga, retrovisores, molduras, bajos, `chassis.py`, `engine.py` |
+| `src/a3/exterior/` | Frontal, faros, zaga, retrovisores, molduras, bajos, `chassis.py`, `engine.py`, `engine_bay.py` |
 | `src/a3/wheels/` | Llanta 5-arm rotor, neumático 225/40 R18, frenos |
 | `src/a3/interior/` | Habitáculo completo (`layout.py` centraliza cotas) y `boot.py` |
 | `src/a3/core/` | Mallas, materiales PBR, `textures.py` (texturas por código), `uv.py`, render |
 | `src/a3/groups.py` | 45 grupos de despiece, etiquetas en español, extras glTF |
 | `docs/index.html` | Visor Three.js (HUD, despiece, cámaras, pinturas, luces) |
-| `docs/models/` | GLB (52 MB) y USDZ (61 MB) publicados, calidad completa |
+| `docs/models/` | GLB y USDZ publicados, calidad completa (tamaños en README) |
 | `reference/` | Calibraciones `match_*.json`, puntos medidos `features.json`, `side_points.txt` |
 | `tools/` | Construcción, medición fotogramétrica, depuración y publicación |
 
@@ -32,10 +32,16 @@ Convenciones de código: `docs/CONVENTIONS.md`. Uso rápido: `README.md`.
 - `tools/fetch_references.sh` → fotos de Wikimedia Commons en `reference/photos/` (no versionadas).
 - `tools/run.py` → construir y renderizar (`--views`, `--parts`, `--clay`, `--explode`, `--hide`, `--glb`).
 - `tools/publish.sh` → regenera GLB, USDZ y `docs/renders/` (~20 min en CPU).
-- Medición: `make_match.py` + `rim_edge.py` (calibración por contorno de llanta), `camera_match.py`,
-  `triangulate.py [--joint]`, `raycast_photo.py`, `epipolar.py`, `reproj_check.py`, `zoom.py`.
-- Verificación: `silhouette.py <foto> --outlines --lines`, `overlay.py`, `skin_preview.py`,
-  `panel_debug.py`.
+- Medición: `calib.py` (calibración robusta por contorno de llanta con rejilla de arranques y
+  puntos de contacto; sustituye a `make_match.py`), `camera_match.py`, `bundle.py` (ajuste
+  conjunto de todas las cámaras, coches y puntos de `reference/features.json`; `--write` guarda),
+  `triangulate.py [--joint]`, `raycast_skin.py <foto> --check a,b` (píxel → punto 3D en la piel
+  sin booleanas y reproyección en otras fotos), `skin_dist.py`, `lines_plot.py`, `epipolar.py`,
+  `reproj_check.py`, `zoom.py` (recorte ampliado con rejilla de píxeles para digitalizar).
+- Verificación: `compare.py foto1,foto2 --crop foto:x0,y0,x1,y1` (render completo por la cámara
+  calibrada; `out/cmp/<foto>_pair.png` foto arriba / render abajo), `silhouette.py <foto>
+  --outlines --lines`, `overlay.py`, `skin_preview.py`, `panel_debug.py`; vistas de detalle en
+  `run.py --views hl_close,tl_close,rear_close,rear34_close,intake_close,side_close`.
 - Visor sin GPU: servidor `python3 -m http.server` en `docs/` + Chromium headless
   (`/opt/pw-browsers/chromium_headless_shell-*/chrome-linux/headless_shell`,
   `--use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader`) con `playwright-core`.
@@ -49,11 +55,27 @@ Convenciones de código: `docs/CONVENTIONS.md`. Uso rápido: `README.md`.
 - Anisotropía en mallas sin UV sale negra en three.js (el visor la anula en ese caso).
 - Las fotos de distintos coches tienen alturas de carrocería distintas: usar `triangulate.py --joint`.
 - La foto lateral (`side.jpg`) no sirve para la zaga: otro coche rojo se funde con la silueta.
-- Cambiar archivos de `src/a3/body/` invalida la caché: la carrocería tarda ~3 min en rehacerse.
+- Cambiar archivos de `src/a3/body/` invalida la caché: la carrocería tarda ~4–5 min en rehacerse.
+- v0.3: las booleanas EXACT pueden fallar en silencio (borrar regiones enteras, dejar el cortador
+  unido, no cortar). `shell.guarded_cut` verifica cada corte; mira el log (`[body] cut ... failed`).
+  Causas encontradas: cortadores que se solapan (junta que entra en un paso de rueda o en un
+  piloto ya cortado → cortar juntas antes que aberturas y recortarlas), cintas de superficie que
+  se retuercen en una esquina (usar prismas), puntos duplicados en las cintas.
+- v0.3: proyectar contornos desde un punto de vista falla en superficies que envuelven (pilares D:
+  el rayo roza el alerón). Para la luneta se usa una carta radial (x, θ) alrededor de un eje
+  longitudinal (`openings.to_xth / radial_cast`), 1:1 con la piel.
+- v0.3: en `surface.EndCap.rings` los anillos deben densificarse hacia la sección de empalme
+  (r = 1 − t^p, p > 1); al revés el final del techo y del capó era una sola faceta.
+- Wikimedia limita peticiones (429): `fetch_references.sh` reintenta; la API de categorías también
+  limita — usar la página web de la categoría `Category:Audi_A3_8V` para ver nombres de archivo.
+- Fotos de coches distintos: S line blanco WI-RQ 1209 (`sline_front`, `sline_rear`, referencia),
+  amarillo (`yellow`, `yellow_rear`, +24 mm de altura), rojo de salón (`side`, `rearq`, `rearsq`).
 
 ## Prompt de continuación
 
-Ver el bloque que el propietario pega en la sesión nueva (también abajo).
+Ver el bloque que el propietario pega en la sesión nueva (también abajo). Al empezar: instalar,
+bajar fotos, `python tools/run.py --views front34` para poblar la caché y
+`python tools/compare.py sline_rear,yellow_rear,rearsq,sline_front,yellow` para ver el estado.
 
 ```text
 Continúa el proyecto "Audi A3 Sportback 8V — Digital Twin" en el repositorio
@@ -67,7 +89,7 @@ https://alvarodesigns34.github.io/audi/ — visor Three.js con HUD y vista despi
 USDZ de calidad completa.
 
 Antes de tocar nada, lee README.md, docs/HANDOFF.md (mapa del repo, herramientas y lecciones
-aprendidas), docs/STATUS.md (estado v0.2, errores conocidos, decisiones y preguntas abiertas)
+aprendidas), docs/STATUS.md (estado v0.3, errores conocidos, decisiones y preguntas abiertas)
 y docs/CONVENTIONS.md, y revisa el código de src/a3/ y tools/. Instala el entorno con
 tools/setup_env.sh y baja las fotos con tools/fetch_references.sh.
 

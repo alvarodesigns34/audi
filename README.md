@@ -10,10 +10,11 @@ no hay mallas hechas a mano ni texturas descargadas (las texturas también se ge
 y se hornean a imagen para viajar en el GLB). Cada cota relevante está en el código con su
 origen (C = confirmada, S = fuente secundaria, E = estimada).
 
-**v0.2**: frontal, laterales y zaga re-medidos con calibración de cámara sub-píxel y
-triangulación multi-foto; carrocería dividida en paneles reales; motor 2.0 TDI, suspensiones,
-escape y maletero; texturas horneadas; visor con HUD y vista despiezada. Detalle en
-[`docs/STATUS.md`](docs/STATUS.md).
+**v0.3**: todas las fotos de referencia re-calibradas con un ajuste conjunto (cámaras, coches y
+puntos) y dos fotos nuevas; carrocería corregida en planta (puertas por dentro de los pasos de
+rueda, invernadero trasero más estrecho), luneta envolvente real, pilotos y juntas del portón en
+3D, faros y tomas S line nuevos, booleanas verificadas, vano motor detallado y muchas piezas
+nuevas. Detalle en [`docs/STATUS.md`](docs/STATUS.md).
 
 ![Frontal 3/4](docs/renders/front34.png)
 
@@ -35,7 +36,10 @@ tools/publish.sh
 
 # vista despiezada / vano motor en render
 $PY tools/run.py --views front34 --explode 1.0 --tag ex_
-$PY tools/run.py --views bay --hide "^Body_Hood$|^Body_Cowl$|^Glass_Windscreen"
+$PY tools/run.py --views bay --hide "^Body_Hood$|^Body_Cowl$|^Glass_Windscreen|^Bonnet_"
+
+# comparación con las fotos calibradas (foto arriba / render abajo en out/cmp/)
+$PY tools/compare.py sline_rear,yellow_rear,rearsq,sline_front,yellow
 
 # visor web (Three.js) en local
 cd docs && python3 -m http.server 8000   # abrir http://localhost:8000
@@ -58,15 +62,18 @@ para revisar superficies; `tools/skin_preview.py` renderiza solo la piel en arci
      no pueden plegarse y empalman con la sección de corte.
    * Espesor de chapa, pasos de rueda, huecos de lunas, juntas de puertas/capó/portón/
      paragolpes, tapa de combustible (lado derecho), parrilla, faros, tomas, pilotos y
-     difusor cortados con **booleanas exactas** sobre la piel (`openings.py`).
-3. **Validación fotogramétrica** — `tools/make_match.py` + `tools/rim_edge.py` detectan el
+     difusor cortados con **booleanas exactas verificadas** sobre la piel (`openings.py`,
+     `shell.guarded_cut`); la luneta envolvente se corta en una carta radial de la zaga.
+3. **Validación fotogramétrica** — `tools/calib.py` + `tools/rim_edge.py` detectan el
    contorno de las llantas en fotos reales (Wikimedia Commons, `tools/fetch_references.sh`) y
-   `tools/camera_match.py` calibra la cámara (< 1 px). `tools/triangulate.py` triangula
-   puntos característicos vistos en varias fotos (con altura de carrocería por coche),
-   `tools/raycast_photo.py` los proyecta sobre la piel, `tools/silhouette.py` y
-   `tools/overlay.py` superponen silueta, contornos y render sobre cada foto.
+   calibran la cámara; `tools/bundle.py` ajusta a la vez todas las cámaras, la altura de cada
+   coche y los puntos característicos vistos en varias fotos (rms 1,8 px);
+   `tools/raycast_skin.py` lleva píxeles a la piel y los reproyecta en otras fotos;
+   `tools/compare.py`, `tools/silhouette.py` y `tools/overlay.py` superponen render, silueta y
+   contornos sobre cada foto.
 4. **Piezas** — `src/a3/exterior/` (frontal, faros, zaga, retrovisores, molduras, bajos,
-   `chassis.py` suspensiones/dirección/escape, `engine.py` 2.0 TDI EA288 + DQ250),
+   `chassis.py` suspensiones/dirección/escape, `engine.py` 2.0 TDI EA288 + DQ250,
+   `engine_bay.py` detalle del vano motor),
    `src/a3/wheels/` (llanta, neumático con dibujo y marcaje, frenos, buje) e
    `src/a3/interior/` (salpicadero, salidas de aire, cuadro, MMI, climatizador, volante de
    4 radios, consola S tronic, asientos S line, paneles de puerta, guarnecidos, pedales,
