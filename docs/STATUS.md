@@ -76,6 +76,28 @@ interior y aislante del capó con bisagras, rejilla de la caja de aguas, mazos d
 | Mecánica | Disposición MQB típica | E (orientativa) |
 | Interior | Fotos 8V + envolvente medida | E |
 
+## Estado exacto al cerrar la sesión (v0.3)
+
+* `docs/models/*.glb|usdz` y `docs/renders/` se generaron con `tools/publish.sh` ANTES de los
+  últimos commits: el limpialuneta (ahora colocado en la carta radial; antes dejaba un triángulo
+  negro sobre el pilar D en las vistas 3/4 traseras) y la ampliación del labio del alerón **no
+  están en el GLB/USDZ publicados**. Hay que ejecutar `tools/publish.sh` otra vez.
+* **Sin verificar**: la luneta/alerón vistos en 3/4 trasera siguen con artefactos (la superficie
+  del labio del alerón sobre las esquinas de la luneta y el hueco de la luna se ven irregulares
+  en `rear34`); el render comparado con `sline_rear` ya coincide bien en pilotos, portón y
+  paragolpes.
+* **Pendiente de implementar (medido, sin código)** — retrovisor (`exterior/mirrors.py`, medido en
+  `side.jpg`): cabeza de z 0,935 a 1,056 (centro 0,995, alto 121 mm), división pintura/negro a
+  z 0,967; cabeza en flecha: x −0,657 (frente de la raíz) a −0,883 (cristal en la punta), plano de
+  cristal de x −0,80 (raíz) a −0,88 (punta); brazo atornillado a la puerta bajo la ventanilla
+  (x −0,70…−0,78, z ≈ 0,865). Insignia S line en x −0,377, z 0,762 (v0.2: 77 mm adelantada y
+  33 mm alta). En v0.2 la cabeza está ~25 mm demasiado alta y el brazo sale de la base de la
+  ventanilla en vez de la puerta.
+* Pendientes de la lista original: interior (salpicadero, asientos S line con costuras y
+  laterales — fotos `cockpit.jpg`, `interior.jpg`), llantas/frenos, suspensión y escape con más
+  detalle, techo (barras longitudinales: en `yellow.jpg` se ven; en el coche del propietario no),
+  retocar el lateral bajo la línea tornado y las costuras de las puertas.
+
 ## Errores y carencias conocidos (por prioridad)
 
 1. **Interior**: salpicadero y asientos siguen siendo aproximados (forma del "ala" del

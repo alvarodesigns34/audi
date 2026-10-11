@@ -131,5 +131,7 @@ def build(ctx):
         for k, (x, z) in enumerate(HANDLES):
             _handle(ctx, surf, x, z, side, f"Door_Handle_{'FR'[k]}{sfx}",
                     lock=(k == 0 and side > 0))
-        _badge(ctx, surf, -0.300, 0.795, side, "Badge_SLine" + sfx)
+        # v0.3: S line badge ray cast on side.jpg (x -0.377, z 0.762), checked on
+        # rearsq / yellow (<= 12 px); v0.2 had it 77 mm forward and 33 mm high
+        _badge(ctx, surf, -0.377, 0.762, side, "Badge_SLine" + sfx)
     _wipers(ctx, surf)
