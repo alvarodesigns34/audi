@@ -82,6 +82,12 @@ para revisar superficies; `tools/skin_preview.py` renderiza solo la piel en arci
 ISO 8855: +X adelante, +Y izquierda, +Z arriba, metros; origen en el suelo, en el centro del
 eje delantero. Volante a la izquierda. Ver `docs/CONVENTIONS.md`.
 
-## Estado y limitaciones conocidas
+## Estado, limitaciones y traspaso
 
-Ver `docs/STATUS.md` (precisión estimada por zona, decisiones pendientes y siguientes pasos).
+* `docs/STATUS.md`: qué hay en v0.2, precisión por zona, errores conocidos, decisiones y
+  preguntas abiertas al propietario.
+* `docs/HANDOFF.md`: mapa del repositorio, herramientas, lecciones aprendidas y el prompt
+  para continuar en una sesión nueva.
+* `docs/CONVENTIONS.md`: coordenadas, estructura de piezas, materiales, texturas y grupos.
+
+El modelo sigue siendo una base: queda muchísimo por mejorar en formas, detalle y piezas.
