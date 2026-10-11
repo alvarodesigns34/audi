@@ -72,9 +72,15 @@ class BodyLines:
         return K
 
 
-def hermite(p0, p1, t0, t1, n, bulge=0.0):
-    """Sample n points (excluding p1) of a cubic Hermite segment (2D)."""
-    s = np.linspace(0.0, 1.0, n, endpoint=False)[:, None]
+def hermite(p0, p1, t0, t1, n, bulge=0.0, cluster=0.0):
+    """Sample n points (excluding p1) of a cubic Hermite segment (2D).
+
+    cluster (0..1) concentrates samples towards both ends (cosine spacing
+    blend) so that creases at key points keep a tight radius when shaded."""
+    s = np.linspace(0.0, 1.0, n, endpoint=False)
+    if cluster:
+        s = (1 - cluster) * s + cluster * 0.5 * (1 - np.cos(np.pi * s))
+    s = s[:, None]
     h00 = 2 * s**3 - 3 * s**2 + 1
     h10 = s**3 - 2 * s**2 + s
     h01 = -2 * s**3 + 3 * s**2
@@ -145,7 +151,8 @@ def section(bl: BodyLines, x: float):
         n = L.SEG_SAMPLES[seg]
         p0, p1 = P[i], P[i + 1]
         ln = np.linalg.norm(p1 - p0)
-        pts = hermite(p0, p1, tout[i] * ln, tin[i + 1] * ln, n, bl.bulge_at(seg, x))
+        pts = hermite(p0, p1, tout[i] * ln, tin[i + 1] * ln, n, bl.bulge_at(seg, x),
+                      L.SEG_CLUSTER.get(seg, 0.0))
         out.append(pts)
     out.append(P[8][None])
     sec = np.vstack(out)

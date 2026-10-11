@@ -69,7 +69,9 @@ def _grille(ctx, surf):
     mesh.grid_object("Grille_Back", np.array(rows), collection=COL, material=back)
 
     # horizontal double slats (gloss black), across the full opening width
-    for k, z in enumerate(np.arange(g_lo + 0.022, g_hi - 0.010, 0.0335)):
+    # v0.3: slat pitch 53 mm (front.jpg / sline_front: 7 bars between the
+    # frame and the plate, scaled with the 92 mm rings), was 33.5 mm
+    for k, z in enumerate(np.arange(g_lo + 0.030, g_hi - 0.012, 0.053)):
         w = _poly_halfwidth(op.GRILLE, z * 1000) - 0.006
         if w <= 0.05:
             continue
@@ -80,8 +82,9 @@ def _grille(ctx, surf):
             x = (p[0] if p is not None else 0.84) - 0.012
             path.append((x, y, z))
         path = np.array(path)
-        # wedge profile: front face 9 mm tall, 26 mm deep, tilted down
-        prof = np.array([[0.0, 0.0045], [0.0, -0.0045], [-0.026, -0.0070], [-0.026, -0.0010]])
+        # rounded wedge: front face 11 mm tall, 30 mm deep, tilted down
+        prof = np.array([[-0.002, 0.0060], [0.0005, 0.0030], [0.0005, -0.0030], [-0.002, -0.0055],
+                         [-0.030, -0.0085], [-0.030, -0.0005]])
         grid = np.array([[p + np.array([pr[0], 0.0, pr[1]]) for pr in prof] for p in path])
         mesh.grid_object(f"Grille_Slat_{k:02d}", grid, closed_v=True, cap_u=True,
                          collection=COL, material=black)
@@ -95,7 +98,7 @@ def _grille(ctx, surf):
                 continue
             p, n = _face_x(surf, y, z)
             if p is not None:
-                pts.append((p[0] - 0.03, y, z))
+                pts.append((p[0] - 0.048, y, z))
         if len(pts) > 3:
             mesh.sweep_profile(f"Grille_Rib_{y:+.3f}", np.array(pts),
                                np.array([[-0.002, -0.012], [0.002, -0.012], [0.002, 0.012],
@@ -262,29 +265,90 @@ def _intakes(ctx, surf):
         g = np.array(rows)
         mesh.grid_object("Intake_Back" + sfx, g, collection=COL, material=tex,
                          flip=mirror)
-        # horizontal blade across the intake (gloss black, S line)
+        # S line blade (gloss black): pointed inner tip on the bumper face, then
+        # across the intake rising slightly outwards (op.BLADE, S)
+        B = np.asarray(op.BLADE, float) * 1e-3
+        Bd = resample(catmull_rom(B, 8), 40)
         path = []
-        bz = op.BLADE_Z * 1e-3
-        for y in np.linspace(iy.min() - 0.05, iy.max() - 0.01, 30):
-            p, n = _face_x(surf, s * y, bz)
+        for k, (y, z) in enumerate(Bd):
+            p, n = _face_x(surf, s * y, z)
             if p is not None:
-                path.append((p[0] - 0.006, s * y, bz))
+                t = k / (len(Bd) - 1)
+                path.append((p[0] - (0.002 if t < 0.12 else 0.010), s * y, z, t))
         path = np.array(path)
-        prof = np.array([[0.0, 0.009], [0.0, -0.007], [-0.03, -0.004], [-0.03, 0.006]])
-        grid = np.array([[p + np.array([pr[0], 0, pr[1]]) for pr in prof] for p in path])
-        mesh.grid_object("Intake_Blade" + sfx, grid, closed_v=True, cap_u=True,
+        grid = []
+        for x, y, z, t in path:
+            h = 0.004 + 0.007 * min(1.0, t / 0.15)           # pointed inner tip
+            dpt = 0.012 + 0.020 * min(1.0, t / 0.15)
+            prof = np.array([[0.0, h * 0.6], [0.0, -h * 0.5], [-dpt, -h * 0.3], [-dpt, h * 0.9]])
+            grid.append([(x + pr[0], y, z + pr[1]) for pr in prof])
+        mesh.grid_object("Intake_Blade" + sfx, np.array(grid), closed_v=True, cap_u=True,
                          collection=COL, material=black)
-        # fog lamp: rectangular reflector + clear lens in the lower outer part
-        cy, cz, w, h = s * op.FOG_CENTRE[0] * 1e-3, op.FOG_CENTRE[1] * 1e-3, 0.130, 0.036
+        # fog lamp above the blade, outer part: rounded reflector + clear lens
+        cy, cz = s * op.FOG_CENTRE[0] * 1e-3, op.FOG_CENTRE[1] * 1e-3
+        w, h = op.FOG_SIZE[0] * 1e-3, op.FOG_SIZE[1] * 1e-3
         p, n = _face_x(surf, cy, cz)
         if p is not None:
-            x = p[0] - 0.022
+            x = p[0] - 0.024
             outl = rounded_polygon([(cy - w / 2, cz - h / 2), (cy + w / 2, cz - h / 2),
-                                    (cy + w / 2, cz + h / 2), (cy - w / 2, cz + h / 2)], 0.012, 5)
-            mesh.extrude_polygon("Fog_Reflector" + sfx, outl, 0.02, plane="YZ", offset=x - 0.02,
-                                 collection=COL, material=chrome)
-            mesh.extrude_polygon("Fog_Lens" + sfx, outl, 0.004, plane="YZ", offset=x + 0.001,
+                                    (cy + w / 2 - s * 0.010, cz + h / 2),
+                                    (cy - w / 2 + s * 0.006, cz + h / 2)], 0.012, 5)
+            mesh.extrude_polygon("Fog_Housing" + sfx, outl, 0.03, plane="YZ", offset=x - 0.03,
+                                 collection=COL, material=ctx.mat("lamp_housing"))
+            mesh.revolve("Fog_Reflector" + sfx, np.array([[0.020, 0.0], [0.016, -0.008],
+                                                          [0.006, -0.018], [0.0, -0.02]]), 32,
+                         axis="X", center=(x + 0.0015, cy, cz), collection=COL, material=chrome)
+            mesh.extrude_polygon("Fog_Lens" + sfx, outl, 0.003, plane="YZ", offset=x + 0.002,
                                  collection=COL, material=lens)
+
+
+def _side_vent(ctx, ref, surf):
+    """S line 'air curtain' inset at the outer corner of the bumper: recessed
+    painted panel 10 mm deep with a black slot at its lower rear end."""
+    paint, black = ctx.mat("paint"), ctx.mat("black_textured")
+    poly = np.asarray(op.SIDE_VENT_XZ, float) * 1e-3
+    for side, sfx in ((1, ".L"), (-1, ".R")):
+        y0, y1 = (0.80, 1.0) if side > 0 else (-1.0, -0.80)
+        pan = st.patch(ref, poly, "XZ", y0, y1, "Bumper_SideVent" + sfx, COL, paint)
+        st.offset(pan, -0.010)
+        mesh.shade_smooth(pan, 40)
+        # walls: outline on the skin -> 10 mm in
+        dense = resample(catmull_rom(poly, 6, closed=True), 160, closed=True)
+        P, N = st.clean_projection(*surf.project(dense, "XZ", side=side))
+        if len(P) > 10:
+            walls = np.array([P + N * 0.0005, P - N * 0.011])
+            mesh.grid_object("Bumper_SideVent_Wall" + sfx, walls, closed_v=True, collection=COL,
+                             material=paint, flip=side < 0)
+        # black slot (lower rear corner of the inset)
+        slot = np.array([(0.452, 0.286), (0.465, 0.263), (0.502, 0.268), (0.522, 0.300),
+                         (0.470, 0.300)])
+        sl = st.patch(ref, slot, "XZ", y0, y1, "Bumper_SideVent_Slot" + sfx, COL, black)
+        st.offset(sl, -0.0105)
+
+
+def _washer_sensors(ctx, surf):
+    """Headlight-washer cover shut line and the outer front parking sensors."""
+    gap = ctx.mat("gap")
+    for side, sfx in ((1, ".L"), (-1, ".R")):
+        q = np.asarray(op.WASHER_COVER_YZ, float) * 1e-3 * [side, 1]
+        loop = resample(catmull_rom(rounded_polygon(q, 0.010, 5), 4, closed=True), 120, closed=True)
+        P, N = st.clean_projection(*surf.project(loop, "YZ", side=1))
+        if len(P) > 10:
+            mesh.tube_along("Washer_Cover_Line" + sfx, np.vstack([P, P[:1]]) - 0.0 * N[0], 0.0008,
+                            sides=6, collection=COL, material=gap)
+        for k, (x, y, z) in enumerate(op.FRONT_SENSORS):
+            p, n = _face_x(surf, side * y * 1e-3, z * 1e-3)
+            if p is None:
+                continue
+            from mathutils import Matrix, Vector
+            for nm, rr, dep, mat in (("Ring", 0.0105, 0.0006, gap), ("Head", 0.009, 0.0010,
+                                                                       ctx.mat("paint"))):
+                ob = mesh.revolve(f"Sensor_F{k}_{nm}{sfx}", np.array([[0.0, 0.0], [rr, 0.0],
+                                                                      [rr, dep], [0.0, dep]]),
+                                  32, axis="Z", collection=COL, material=mat)
+                rot = Vector((0, 0, 1)).rotation_difference(Vector(tuple(n))).to_matrix().to_4x4()
+                ob.data.transform(Matrix.Translation(Vector(tuple(p))) @ rot)
+                ob.data.update()
 
 
 def _lip(ctx, surf):
@@ -329,5 +393,10 @@ def build(ctx):
     _rings(ctx, surf)
     _plate(ctx, surf)
     _intakes(ctx, surf)
+    _side_vent(ctx, ref, surf)
+    _washer_sensors(ctx, surf)
     _lip(ctx, surf)
+    tmp = scene.temp_collection("_tmp_patch")
+    for o in list(tmp.objects):
+        scene.delete(o)
     # the engine bay is modelled by exterior/engine.py

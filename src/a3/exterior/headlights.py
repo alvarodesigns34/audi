@@ -29,101 +29,154 @@ def _on_skin(surf, p, d):
     return np.array(hit[0][:]) if hit[0] is not None else p
 
 
+def _shrink(P, d, k_mm, c=None):
+    """Offset a closed loop inwards by k_mm in the plane normal to d."""
+    c = P.mean(0) if c is None else c
+    lat = c - P
+    lat -= np.outer(lat @ d, d)
+    lat /= np.linalg.norm(lat, axis=1)[:, None] + 1e-12
+    # smooth the offset direction (corners)
+    for _ in range(4):
+        lat = (np.roll(lat, 1, 0) + 2 * lat + np.roll(lat, -1, 0)) / 4
+        lat /= np.linalg.norm(lat, axis=1)[:, None] + 1e-12
+    return P + lat * k_mm * 1e-3
+
+
+def _band(name, outer, inner, col, mat, flip=False):
+    """Closed ring surface between two loops with the same point count."""
+    g = np.array([outer, inner])
+    return mesh.grid_object(name, g, closed_v=True, collection=col, material=mat, flip=flip)
+
+
 def _unit(ctx, ref, surf, mirror):
+    """Xenon plus unit (8V pre-facelift, photos yellow.jpg / sline_front.jpg):
+    dark border round the whole lens, a white light-guide channel (LED daytime
+    running light) following the lower edge and both ends, a thin chrome rim
+    inside it, a recessed dark-grey bezel with the bi-xenon projector at the
+    outer end and a horizontal chrome blade over the inner reflector.
+    Depths behind the lens E."""
     sfx = ".R" if mirror else ".L"
     s = -1 if mirror else 1
-    lens_m = ctx.mat("lens_clear")
-    house = ctx.mat("lamp_housing")
-    refl = ctx.mat("reflector")
-    bezel = ctx.mat("reflector")       # inner bezel: vacuum-metallised (chrome look)
-    led = ctx.mat("led_white")
-    amber = ctx.mat("led_amber")
     d = op.headlight_dir(mirror)
     tmp = scene.temp_collection("_tmp_patch")
 
     # ---- outer lens (body-flush) ------------------------------------------------
     cut = op.headlight_cutter("HL_cut" + sfx, surf, tmp, mirror=mirror, depth_in=0.05,
                               depth_out=0.05)
-    lens = st.patch_with_cutter(ref, cut, "Headlight_Lens" + sfx, COL, lens_m)
+    lens = st.patch_with_cutter(ref, cut, "Headlight_Lens" + sfx, COL, ctx.mat("lens_clear"))
     st.offset(lens, 0.0006)
     mesh.solidify(lens, 0.003, offset=-1.0)
     mesh.shade_smooth(lens, 60)
 
-    # ---- housing bucket (tapering back along -d) ---------------------------------
-    P = op.headlight_outline(surf, mirror, n=200)
+    P = op.headlight_outline(surf, mirror, n=240)
+    if mirror:
+        P = P[::-1]
     c = P.mean(0)
-    rows = [P - d * 0.004]
-    for depth, k in ((0.03, 0.97), (0.07, 0.90), (0.12, 0.78)):
-        rows.append(c + (P - c) * k - d * depth)
-    grid = np.array(rows)
-    mesh.grid_object("Headlight_Housing" + sfx, grid, closed_v=True, cap_u=False,
-                     collection=COL, material=house, flip=mirror)
+    # ---- housing: border band + bucket back -------------------------------------
+    b0 = P - d * 0.004
+    b1 = _shrink(P, d, 7.0, c) - d * 0.012
+    _band("Headlight_Border" + sfx, b0, b1, COL, ctx.mat("lamp_border"))
+    rows = [b0, P - d * 0.03, c + (P - c) * 0.92 - d * 0.075, c + (P - c) * 0.80 - d * 0.12]
+    mesh.grid_object("Headlight_Housing" + sfx, np.array(rows), closed_v=True, collection=COL,
+                     material=ctx.mat("lamp_housing"))
     back = rows[-1]
     nb = len(back)
     verts = list(map(tuple, back)) + [tuple(back.mean(0))]
-    faces = [(nb, (i + 1) % nb, i) if not mirror else (nb, i, (i + 1) % nb) for i in range(nb)]
-    mesh.object_from_pydata("Headlight_Back" + sfx, verts, faces, COL, house)
+    faces = [(nb, i, (i + 1) % nb) for i in range(nb)]
+    mesh.object_from_pydata("Headlight_Back" + sfx, verts, faces, COL, ctx.mat("lamp_housing"))
 
-    # ---- titanium inner bezel (upper part of the unit, recessed) -----------------
-    bz = lens.copy()
-    bz.data = lens.data.copy()
-    bz.name = "Headlight_Bezel" + sfx
-    scene.link(bz, COL)
-    bz.data.materials.clear()
-    bz.data.materials.append(bezel)
-    co = mesh.mesh_arrays(bz)
-    cc = co.mean(0)
-    co = cc + (co - cc) * 0.92 - d * 0.04
-    mesh.set_mesh_arrays(bz, co)
-    mesh.shade_smooth(bz, 50)
+    # ---- white light-guide channel (DRL) ------------------------------------------
+    g0 = b1
+    g1 = _shrink(P, d, 21.0, c) - d * 0.022
+    guide = _band("Headlight_DRL_Channel" + sfx, g0, g1, COL, ctx.mat("lamp_guide_white"))
+    # the top run of the channel is covered by the bezel: keep the white band only
+    # along the lower edge and up both ends (faces whose centre is below the
+    # straight line joining the two ends' upper corners)
+    H = np.asarray(op.HEADLIGHT_3D, float) * 1e-3 * [1, s, 1]
+    zt = lambda y: np.interp(abs(y), [0.44, 0.60, 0.75, 0.86], [0.684, 0.700, 0.716, 0.722])
+    bi = mesh.material_index(guide, ctx.mat("lamp_bezel_grey"))
+    for f in guide.data.polygons:
+        cc = f.center
+        if cc.z > zt(cc.y) - 0.006 and 0.52 < abs(cc.y) < 0.80:
+            f.material_index = bi
+    # LED strip inside the channel (emissive in the viewer's lights mode)
+    mid = _shrink(P, d, 14.0, c) - d * 0.019
+    keep = np.array([not (p[2] > zt(p[1]) - 0.004 and 0.52 < abs(p[1]) < 0.80) for p in mid])
+    run = _longest(mid, keep)
+    if len(run) > 10:
+        mesh.tube_along("Headlight_DRL_LED" + sfx, resample(run, 120), 0.0018, sides=8,
+                        collection=COL, material=ctx.mat("led_white"))
+    # thin chrome rim inside the channel
+    r0 = g1
+    r1 = _shrink(P, d, 24.0, c) - d * 0.026
+    _band("Headlight_ChromeRim" + sfx, r0, r1, COL, ctx.mat("chrome"))
+    # recessed dark-grey bezel filling the inside
+    in_loop = r1
+    rows = [in_loop, c + (in_loop - c) * 0.85 - d * 0.03, c + (in_loop - c) * 0.6 - d * 0.045]
+    mesh.grid_object("Headlight_Bezel" + sfx, np.array(rows), closed_v=True, collection=COL,
+                     material=ctx.mat("lamp_bezel_grey"), flip=True)
+    cb = rows[-1]
+    nb = len(cb)
+    verts = list(map(tuple, cb)) + [tuple(cb.mean(0) - d * 0.005)]
+    faces = [(nb, (i + 1) % nb, i) for i in range(nb)]
+    mesh.object_from_pydata("Headlight_BezelBack" + sfx, verts, faces, COL,
+                            ctx.mat("lamp_bezel_grey"))
 
-    # ---- bi-xenon projector (outer) and reflector / turn module (inner) ----------
+    # ---- bi-xenon projector (outer end) and inner chrome blade ---------------------
     def anchor(x, y, z, depth):
         q = _on_skin(surf, np.array([x, s * y, z]), d)
         return q - d * depth
 
-    def bowl(centre, r, name):
-        prof = np.array([[r * 1.25, 0.0], [r * 1.18, -0.006], [r * 0.6, -0.03], [r * 0.2, -0.042]])
-        ob = mesh.revolve(name + sfx, prof, 48, axis="X", center=(0, 0, 0),
-                          collection=COL, material=refl)
-        _orient(ob, centre, d)
-        return ob
-
-    pc = anchor(0.585, 0.790, 0.682, 0.045)
-    pr = 0.031
-    bowl(pc, pr, "Headlight_ProjectorBowl")
+    pc = anchor(0.560, 0.800, 0.690, 0.040)
+    pr = 0.030
+    bowl = mesh.revolve("Headlight_ProjectorBowl" + sfx,
+                        np.array([[pr * 1.35, 0.0], [pr * 1.25, -0.006], [pr * 0.7, -0.03],
+                                  [pr * 0.2, -0.04]]), 48, axis="X", collection=COL,
+                        material=ctx.mat("reflector"))
+    _orient(bowl, pc, d)
     t = np.linspace(0, math.pi / 2, 12)
-    dome = np.stack([pr * np.cos(t), 0.004 + 0.013 * np.sin(t)], 1)
-    ob = mesh.revolve("Headlight_ProjectorLens" + sfx, dome, 48, axis="X",
-                      collection=COL, material=ctx.mat("glass_tinted"))
+    dome = np.stack([pr * np.cos(t), 0.004 + 0.014 * np.sin(t)], 1)
+    ob = mesh.revolve("Headlight_ProjectorLens" + sfx, dome, 48, axis="X", collection=COL,
+                      material=ctx.mat("glass_tinted"))
     _orient(ob, pc, d)
     ring = mesh.revolve("Headlight_ProjectorRing" + sfx,
-                        np.array([[pr * 1.28, 0.002], [pr * 1.06, 0.008], [pr * 0.98, 0.004]]),
+                        np.array([[pr * 1.30, 0.002], [pr * 1.06, 0.009], [pr * 0.98, 0.004]]),
                         48, axis="X", collection=COL, material=ctx.mat("chrome"))
     _orient(ring, pc, d)
-    rc = anchor(0.700, 0.640, 0.668, 0.050)
-    bowl(rc, 0.026, "Headlight_Reflector")
-    # chrome eyebrow blade over the inner module (typical of the 8V xenon unit)
-    brow = [anchor(x, y, z, 0.03) for x, y, z in
-            ((0.775, 0.50, 0.690), (0.735, 0.60, 0.698), (0.670, 0.69, 0.708),
-             (0.610, 0.75, 0.714))]
-    mesh.tube_along("Headlight_Brow" + sfx, resample(np.array(brow), 30), 0.0022, sides=8,
-                    collection=COL, material=ctx.mat("chrome"))
+    blade = [anchor(x, y, z, 0.034) for x, y, z in
+             ((0.770, 0.505, 0.678), (0.735, 0.585, 0.685), (0.690, 0.655, 0.692),
+              (0.640, 0.715, 0.698))]
+    mesh.sweep_profile("Headlight_Blade" + sfx, resample(catmull_rom(np.array(blade), 8), 30),
+                       np.array([[-0.0012, -0.004], [0.0012, -0.004], [0.0012, 0.004],
+                                 [-0.0012, 0.004]]), collection=COL, material=ctx.mat("chrome"))
+    for k, (x, y, z) in enumerate(((0.745, 0.560, 0.668), (0.700, 0.630, 0.676))):
+        q = anchor(x, y, z, 0.040)
+        r = mesh.revolve(f"Headlight_Reflector_{k}" + sfx,
+                         np.array([[0.018, 0.0], [0.016, -0.006], [0.008, -0.02], [0.0, -0.024]]),
+                         32, axis="X", collection=COL, material=ctx.mat("reflector"))
+        _orient(r, q, d)
+    # amber turn signal LED row behind the chrome blade
+    am = np.array([anchor(x, y, z, 0.038) for x, y, z in
+                   ((0.765, 0.52, 0.688), (0.725, 0.60, 0.694), (0.680, 0.67, 0.700))])
+    mesh.tube_along("Headlight_Indicator" + sfx, resample(catmull_rom(am, 8), 30), 0.0020,
+                    sides=8, collection=COL, material=ctx.mat("led_amber"))
 
-    # ---- LED DRL light guide: along the lower edge, up the inner end -------------
-    H = np.asarray(op.HEADLIGHT_3D, float) * 1e-3
-    if mirror:
-        H = H * [1, -1, 1]
-    lower = np.vstack([H[10:], H[:1]])           # lower outer corner -> inner tip
-    cen = H.mean(0)
-    guide = cen + (lower - cen) * 0.88
-    guide = np.array([_on_skin(surf, g, d) - d * 0.014 for g in guide])
-    guide = resample(catmull_rom(guide, 8), 90)
-    mesh.tube_along("Headlight_DRL_Guide" + sfx, guide, 0.0042, sides=10, collection=COL,
-                    material=led)
-    am = guide - d * 0.010
-    mesh.tube_along("Headlight_Indicator" + sfx, am, 0.0026, sides=8, collection=COL,
-                    material=amber)
+
+def _longest(loop, mask):
+    n = len(loop)
+    if mask.all():
+        return loop
+    start = int(np.argmin(mask))
+    best, cur = [], []
+    for k in range(n):
+        i = (start + k) % n
+        if mask[i]:
+            cur.append(i)
+        else:
+            best = cur if len(cur) > len(best) else best
+            cur = []
+    best = cur if len(cur) > len(best) else best
+    return loop[best]
 
 
 def _orient(ob, centre, d):

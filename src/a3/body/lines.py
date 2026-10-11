@@ -222,6 +222,10 @@ BULGE = {
 
 # Samples per segment (topology is identical for every section)
 SEG_SAMPLES = {
-    "K0K1": 14, "K1K2": 8, "K2K3": 10, "K3K4": 18, "K4K5": 28,
-    "K5K6": 14, "K6K7": 22, "K7K8": 26,
+    "K0K1": 14, "K1K2": 8, "K2K3": 10, "K3K4": 18, "K4K5": 34,
+    "K5K6": 20, "K6K7": 22, "K7K8": 26,
 }
+# v0.3: cosine clustering of the samples towards the key points of the
+# segments either side of the tornado crease (K5), so that the crease keeps
+# its real ~3-5 mm radius in smooth shading instead of a ~15 mm blend.
+SEG_CLUSTER = {"K4K5": 0.7, "K5K6": 0.7, "K6K7": 0.3}

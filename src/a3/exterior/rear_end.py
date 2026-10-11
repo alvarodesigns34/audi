@@ -139,40 +139,75 @@ def _taillight(ctx, ref, surf, mirror):
 
 
 def _diffuser(ctx, surf):
+    """S line rear diffuser insert (black grained plastic) set 4 mm into the
+    bumper opening, twin chrome tail pipes on the left,
+    four parking sensors and the tow-eye cover (sline_rear ray casts, S)."""
     dark = ctx.mat("black_textured")
-    grey = ctx.mat("titanium_grey")
+    gloss = ctx.mat("black_gloss")
     chrome = ctx.mat("chrome")
+    D = np.asarray(op.DIFFUSER, float)[:-1] * 1e-3
+    top = np.vstack([(D[::-1] * [-1, 1])[:-1], D])          # y -> z of the top edge
     rows = []
-    for z in np.linspace(0.238, 0.385, 12):
+    for z_frac in np.linspace(0.0, 1.0, 16):
         row = []
-        for y in np.linspace(-0.76, 0.76, 60):
+        for y in np.linspace(-0.80, 0.80, 81):
+            zt = np.interp(y, top[:, 0], top[:, 1]) if abs(y) <= 0.805 else 0.24
+            z = zt + (0.232 - zt) * z_frac
             p, n = _rear_x(surf, y, z)
-            x = (p[0] if p is not None else -3.30) + 0.025
-            row.append((x, y, z))
+            if p is None:
+                row.append((-3.40, y, z))
+            else:
+                row.append(tuple(p - n * 0.004))
         rows.append(row)
-    mesh.grid_object("Diffuser_Panel", np.array(rows), collection=COL, material=dark, flip=True)
-    # vertical fins
-    for y in (-0.42, -0.14, 0.14):
-        p, n = _rear_x(surf, y, 0.30)
-        if p is None:
-            continue
-        mesh.extrude_polygon(f"Diffuser_Fin_{y:+.2f}", [(p[0] + 0.025, 0.242), (p[0] + 0.012, 0.242),
-                                                     (p[0] + 0.012, 0.33), (p[0] + 0.025, 0.36)],
-                             0.006, plane="XZ", offset=y - 0.003, collection=COL, material=grey)
-    # twin round tail pipes (left), chrome, 76 mm, slightly protruding
+    pan = mesh.grid_object("Diffuser_Panel", np.array(rows), collection=COL, material=dark,
+                           flip=True)
+    mesh.shade_smooth(pan, 40)
+    # (no vertical fins: none on the 8V S line insert, sline_rear / yellow_rear)
+    # twin round tail pipes (left), chrome, double-wall, slightly protruding
     for (yy, zz) in op.EXHAUST_TIPS:
         y, z = yy * 1e-3, zz * 1e-3
-        p, n = _rear_x(surf, y, z)
-        x = (p[0] if p is not None else -3.38) - 0.012
+        p, n = _rear_x(surf, y, z + 0.06)
+        x = (p[0] if p is not None else -3.38) - 0.006
         r = op.EXHAUST_D * 1e-3 / 2
-        prof = np.array([[r * 0.86, x + 0.15], [r * 0.86, x + 0.004], [r * 0.93, x - 0.001],
-                         [r, x + 0.004], [r, x + 0.15]])
-        tip = mesh.revolve(f"Exhaust_Tip_{yy}", prof, 48, axis="X", center=(0, y, z),
-                           collection=COL, material=chrome)
-        inner = mesh.revolve(f"Exhaust_Inner_{yy}", np.array([[r * 0.85, x + 0.002],
-                                                               [r * 0.85, x + 0.2], [0.0, x + 0.2]]),
-                             48, axis="X", center=(0, y, z), collection=COL,
-                             material=ctx.mat("steel_dark"))
+        prof = np.array([[r * 0.80, x + 0.12], [r * 0.80, x + 0.003], [r * 0.86, -0.0 + x - 0.002],
+                         [r * 0.96, x - 0.002], [r, x + 0.003], [r, x + 0.12]])
+        mesh.revolve(f"Exhaust_Tip_{yy}", prof, 64, axis="X", center=(0, y, z), collection=COL,
+                     material=chrome)
+        mesh.revolve(f"Exhaust_Inner_{yy}", np.array([[r * 0.79, x + 0.003], [r * 0.79, x + 0.2],
+                                                       [0.0, x + 0.2]]),
+                     48, axis="X", center=(0, y, z), collection=COL, material=ctx.mat("steel_dark"))
+    # parking sensors (painted body colour, 18 mm, in a thin dark ring)
+    for k, (y, z) in enumerate(((0.686, 0.541), (0.267, 0.559), (-0.267, 0.559),
+                                (-0.686, 0.541))):
+        p, n = _rear_x(surf, y, z)
+        if p is None:
+            continue
+        for nm, rr, dep, mat in (("Ring", 0.0105, 0.0006, "gap"), ("Head", 0.0090, 0.0010,
+                                                                     "paint")):
+            ob = mesh.revolve(f"Park_Sensor_R{k}_{nm}", np.array([[0.0, 0.0], [rr, 0.0],
+                                                                  [rr, dep], [0.0, dep]]),
+                              32, axis="Z", collection=COL, material=ctx.mat(mat))
+            _place_on(ob, p, n)
+    # tow-eye cover (right side): rounded rectangle shut line
+    p, n = _rear_x(surf, -0.373, 0.465)
+    if p is not None:
+        rr = rounded_polygon([(-0.022, -0.013), (0.022, -0.013), (0.022, 0.013),
+                              (-0.022, 0.013)], 0.004, 4)
+        ring = np.array([(0.0, a, b) for a, b in rr])
+        t = np.cross(n, [0, 0, 1.0])
+        t /= np.linalg.norm(t)
+        u = np.cross(t, n)
+        loop = np.array([p + t * a + u * b + n * 0.0004 for _, a, b in ring])
+        mesh.tube_along("Tow_Eye_Cover_Line", np.vstack([loop, loop[:1]]), 0.0008, sides=6,
+                        collection=COL, material=ctx.mat("gap"))
+
+
+def _place_on(ob, p, n):
+    """Move an object modelled about +Z at the origin onto point p, +Z -> n."""
+    from mathutils import Matrix, Vector
+    rot = Vector((0, 0, 1)).rotation_difference(Vector(tuple(n))).to_matrix().to_4x4()
+    ob.data.transform(Matrix.Translation(Vector(tuple(p))) @ rot)
+    ob.data.update()
 
 
 def _plate_rings(ctx, surf):
@@ -221,6 +256,9 @@ def _spoiler(ctx, ref, surf):
     half = te[:, :2]
     full = np.vstack([(half[::-1] * [1, -1])[:-1], half])
     full = resample(catmull_rom(full, 10), 141)
+    # the lip only runs across the glass (|y| < 0.53); the spoiler ends at the
+    # corners are body (they would otherwise hang down the D-pillars)
+    full = full[np.abs(full[:, 1]) < 0.53]
     gtop = np.asarray(op.REAR_GLASS_TOP, float) * 1e-3
     secs, tes = [], []
     for k, (x, y) in enumerate(full):
@@ -234,9 +272,10 @@ def _spoiler(ctx, ref, surf):
         t = np.array([full[j1, 0] - full[j0, 0], full[j1, 1] - full[j0, 1], 0.0])
         t /= np.linalg.norm(t) + 1e-12
         r = np.array([-t[1], t[0], 0.0])             # rearward / outward in plan
-        u = abs(y) / 0.60
-        over = 0.030 * (1 - u ** 4) + 0.006          # overhang beyond the crease
-        drop = 0.030 * (1 - u ** 3) + 0.010          # height of the black underside
+        u = abs(y) / 0.53
+        fade = min(1.0, (1 - u) / 0.12) if u > 0.88 else 1.0
+        over = (0.026 * (1 - u ** 4) + 0.006) * fade + 0.001
+        drop = (0.030 * (1 - u ** 3) + 0.010) * fade + 0.002
         zc = P[2]
         prof = [P - r * 0.050 + np.array([0, 0, 0.0015]),        # on the panel, ahead
                 P + np.array([0, 0, 0.0035]),

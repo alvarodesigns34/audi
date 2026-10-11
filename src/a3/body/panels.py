@@ -77,6 +77,27 @@ def _to_eye_image(P, eye):
     return np.stack([(d @ r) / w, (d @ u) / w], 1)
 
 
+def _near_visible(C, eye, tol=0.012):
+    """Faces lying within tol (m) behind the first skin surface seen from eye
+    (so both the outer and the inner layer of the solidified sheet qualify,
+    and nothing on the far side of the car)."""
+    ref = bpy.data.objects.get("Body_Skin_Reference")
+    if ref is None:
+        return np.ones(len(C), bool)
+    from mathutils import Vector
+    from mathutils.bvhtree import BVHTree
+    bvh = BVHTree.FromObject(ref, bpy.context.evaluated_depsgraph_get())
+    out = np.zeros(len(C), bool)
+    sel = np.nonzero((C[:, 0] < -2.6) & (C[:, 2] > 0.6))[0]
+    for i in sel:
+        d = C[i] - eye
+        L = np.linalg.norm(d)
+        hit = bvh.ray_cast(Vector(eye), Vector(d / L), L + 0.05)
+        if hit[0] is not None and L - hit[3] < tol:
+            out[i] = True
+    return out
+
+
 def _tailgate_image_poly():
     """Closed tailgate outline (both sides) in the image plane of REAR_EYE."""
     eye = np.asarray(op.REAR_EYE, float)
@@ -101,8 +122,8 @@ def classify(C, N):
     poly = _tailgate_image_poly()
     eye = np.asarray(op.REAR_EYE, float)
     uv = _to_eye_image(C, eye)
-    facing = ((C - eye) * N).sum(1) < 0
-    tailgate = (x < -2.60) & (z > 0.60) & facing & _poly_contains(poly, uv)
+    near = _near_visible(C, eye)                # both sheet layers of the visible skin
+    tailgate = (x < -2.60) & (z > 0.60) & near & _poly_contains(poly, uv)
     lab[tailgate] = "Tailgate"
 
     # --- rear bumper ---------------------------------------------------------------
@@ -191,4 +212,10 @@ def split(shell, materials=None):
         for p in cw.data.polygons:
             p.material_index = 0
     scene.delete(shell)
+    # the panel named like the source object got a ".001" suffix: restore names
+    for name, ob in out.items():
+        want = "Body_" + name
+        if ob.name != want:
+            ob.name = want
+            ob.data.name = want
     return out
