@@ -484,7 +484,7 @@ EXHAUST_D = 80
 # cutters follow the wrap-around of the rear corners.
 # --------------------------------------------------------------------------
 
-REAR_EYE = (-6.5, 0.0, 1.9)          # projection centre for glass / tailgate
+REAR_EYE = (-6.5, 0.0, 1.3)          # projection centre for the tailgate shut lines
 LAMP_EYE = (-5.2, 3.4, 0.95)         # projection centre for the left tail lamp
 
 # Tail lamp outline (left), from the outer front-top corner along the top edge
@@ -655,33 +655,112 @@ def _k7_edge(bl=None):
     return np.stack([xs, w, z], 1)
 
 
-def rear_glass_outline(surf, inset=None, n=360):
-    """Closed rear glass outline on the skin (both sides), inset from K7."""
+RADIAL_Z = 0.90      # axis (x, 0, RADIAL_Z) of the radial parameterisation of the rear
+RADIAL_R = 0.60      # m per radian: scales theta to comparable lengths
+
+
+def to_xth(P):
+    """3D points -> (x, theta*R) of the radial parameterisation used for the
+    wrap-around rear glass: theta = atan2(z - RADIAL_Z, y) in the section
+    plane x = const.  A ray from the axis in the section plane meets the skin
+    once, so (x, theta) is a 1:1 chart of the rear upper body, unlike a
+    projection from an eye point, which grazes the D-pillars."""
+    P = np.asarray(P, float)
+    th = np.arctan2(P[:, 2] - RADIAL_Z, P[:, 1])
+    return np.stack([P[:, 0], th * RADIAL_R], 1)
+
+
+def radial_cast(surf, Q):
+    """(x, theta*R) -> skin points and normals (missing hits dropped)."""
+    from mathutils import Vector
+    P, N = [], []
+    for x, t in np.asarray(Q, float):
+        th = t / RADIAL_R
+        d = Vector((0.0, np.cos(th), np.sin(th)))
+        hit = surf.bvh.ray_cast(Vector((x, 0.0, RADIAL_Z)), d, 5.0)
+        if hit[0] is not None:
+            P.append(np.array(hit[0][:]))
+            N.append(np.array(hit[1][:]))
+    return np.array(P), np.array(N)
+
+
+def rear_glass_param(inset=None, n=360):
+    """Closed rear-glass outline in the (x, theta*R) chart, inset by `inset`
+    mm (positive = smaller)."""
     from ..core.curves import catmull_rom, resample
     inset = REAR_GLASS_INSET if inset is None else inset
     edge = _k7_edge()                                       # top corner -> bottom corner
     bottom = np.asarray(REAR_GLASS_BOTTOM, float) * 1e-3     # bottom corner -> centre
     top = np.asarray(REAR_GLASS_TOP, float) * 1e-3          # corner -> centre top
     half = np.vstack([top[::-1], edge[1:-1], bottom])       # centre top -> corners -> centre bottom
-    other = half[::-1] * [1, -1, 1]
-    loop = np.vstack([half[:-1], other[:-1]])
+    Ql = to_xth(half)
+    Qr = Ql[::-1].copy()
+    Qr[:, 1] = np.pi * RADIAL_R - Qr[:, 1]                  # mirror: theta -> pi - theta
+    loop = np.vstack([Ql[:-1], Qr[:-1]])
     loop = resample(catmull_rom(loop, 4, closed=True), n, closed=True)
-    # inset in the eye's image plane: move every point towards the loop centre
-    # (as seen from the eye) by `inset` mm measured at the point's distance
-    eye = np.asarray(REAR_EYE, float)
-    c = loop.mean(0)
-    D = _eye_dirs(loop, eye)
-    lat = c - loop
-    lat -= (lat * D).sum(1)[:, None] * D
-    lat /= np.linalg.norm(lat, axis=1)[:, None] + 1e-12
-    loop = loop + lat * inset * 1e-3
-    P, N = project_from(surf, loop, eye)
+    if inset:
+        area = mesh.polygon_area(loop)
+        loop = mesh.polyline_offset_2d(loop, -inset * 1e-3 if area > 0 else inset * 1e-3,
+                                       closed=True)
+    return loop
+
+
+def rear_glass_outline(surf, inset=None, n=360):
+    """Closed rear glass outline on the skin (both sides), inset from K7."""
+    P, N = radial_cast(surf, rear_glass_param(inset, n))
     return P, N
 
 
+def radial_slab_cutter(name, surf, loop_q, col, material=None, delta=0.006, nr=40):
+    """Closed slab (+-delta along the skin normal) covering the region of the
+    skin inside a closed loop of the (x, theta*R) chart."""
+    import bmesh
+    loop_q = np.asarray(loop_q, float)
+    c = loop_q.mean(0)
+    n = len(loop_q)
+    rs = np.linspace(0.0, 1.0, nr) ** 0.8
+    G = np.zeros((nr, n, 3))
+    Nn = np.zeros((nr, n, 3))
+    for i, r in enumerate(rs):
+        P, N = radial_cast(surf, c + (loop_q - c) * r)
+        if len(P) != n:
+            raise RuntimeError(f"{name}: radial cast missed the skin")
+        G[i], Nn[i] = P, N
+    # outward normals (away from the axis)
+    ax = np.stack([G[..., 0], np.zeros_like(G[..., 0]), np.full_like(G[..., 0], RADIAL_Z)], -1)
+    flip = ((G - ax) * Nn).sum(-1) < 0
+    Nn[flip] *= -1
+    for _ in range(2):
+        Nn[1:-1] = (Nn[:-2] + 2 * Nn[1:-1] + Nn[2:]) / 4
+        Nn = (np.roll(Nn, 1, 1) + 2 * Nn + np.roll(Nn, -1, 1)) / 4
+    Nn /= np.linalg.norm(Nn, axis=-1)[..., None]
+    outer, inner = G + Nn * delta, G - Nn * delta
+    verts = np.vstack([outer.reshape(-1, 3), inner.reshape(-1, 3)])
+    off = nr * n
+    faces = []
+    for i in range(nr - 1):
+        for k in range(n):
+            j = (k + 1) % n
+            a, b, cc, d = i * n + k, i * n + j, (i + 1) * n + j, (i + 1) * n + k
+            faces.append((a, b, cc, d))
+            faces.append((off + d, off + cc, off + b, off + a))
+    i = nr - 1
+    for k in range(n):
+        j = (k + 1) % n
+        faces.append((i * n + k, off + i * n + k, off + i * n + j, i * n + j))
+    ob = mesh.object_from_pydata(name, verts, faces, col, material, smooth=False)
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-7)
+    bmesh.ops.dissolve_degenerate(bm, edges=bm.edges, dist=1e-8)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(ob.data)
+    bm.free()
+    return ob
+
+
 def rear_glass_cutter(name, surf, col, material=None, inset=None, delta=0.006):
-    P, N = rear_glass_outline(surf, inset)
-    return slab_cutter(name, surf, P, REAR_EYE, col, material, delta=delta)
+    return radial_slab_cutter(name, surf, rear_glass_param(inset), col, material, delta=delta)
 
 
 def taillight_outline(surf, mirror=False, n=200, grow=0.0):

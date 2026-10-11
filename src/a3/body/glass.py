@@ -79,7 +79,7 @@ def build(ctx):
     mesh.solidify(rw, 0.004, offset=-1.0)
     mesh.shade_smooth(rw, 50)
     # black ceramic frit band (55 mm) on the inner face
-    band = st.boundary_band(rw, 0.055, "Glass_RearWindow_Frit", COL, frit, lift=-0.0005)
+    band = st.boundary_band(rw, 0.075, "Glass_RearWindow_Frit", COL, frit, lift=-0.0005)
 
     # ---- DLO surround seal / trim (projected outline) ------------------------
     surf = st.Surface(ref)

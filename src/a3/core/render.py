@@ -48,6 +48,7 @@ def studio(floor=True, world_strength=0.35, floor_color=(0.55, 0.55, 0.56)):
         ob.location = loc
         ob.rotation_euler = rot
         ob.visible_camera = False      # seen through the windscreen otherwise
+        ob.visible_transmission = False
         col.objects.link(ob)
         return ob
 
@@ -164,6 +165,7 @@ def cabin_fill(strength=1.0):
         ob.location = loc
         ob.visible_camera = False      # light only, never seen as a white panel
         ob.visible_glossy = False      # nor reflected in the windscreen
+        ob.visible_transmission = False
         col.objects.link(ob)
         out.append(ob)
     return out

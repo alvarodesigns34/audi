@@ -123,7 +123,20 @@ def classify(C, N):
     eye = np.asarray(op.REAR_EYE, float)
     uv = _to_eye_image(C, eye)
     near = _near_visible(C, eye)                # both sheet layers of the visible skin
-    tailgate = (x < -2.60) & (z > 0.60) & near & _poly_contains(poly, uv)
+    rear_face = (x < -3.05) & (z > 0.60) & near & _poly_contains(poly, uv)
+    # upper tailgate (spoiler / roof end and the glass surround): behind the
+    # roof seam and inboard of the K7 crease (the D-pillar outside it stays
+    # on the body side) - tested in the section, not from an eye point,
+    # because the D-pillars wrap round the glass
+    from .surface import BodyLines
+    bl = BodyLines()
+    K = bl.keypoints(np.clip(x, -3.40, 0.0))
+    k7w, k7z = K["K7"]
+    seam = np.asarray(op.TAILGATE_SEAM, float) * 1e-3
+    seam_x = np.interp(ay, seam[:, 1], seam[:, 0])
+    upper = (x < seam_x) & (x >= -3.12) & (z > 0.98) & (ay < k7w - 0.003)
+    upper |= (x < -3.05) & (x >= -3.12) & (z > 0.98) & (ay < k7w - 0.003) & (z > k7z - 0.03)
+    tailgate = rear_face | upper
     lab[tailgate] = "Tailgate"
 
     # --- rear bumper ---------------------------------------------------------------

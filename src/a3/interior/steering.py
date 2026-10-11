@@ -136,27 +136,21 @@ def build(ctx):
                     hub_z + 0.010, -0.004, leather)
         objs.append(sp)
         _mf_pad(ctx, s, objs)
-    # lower spokes converging into the 'V'
-    for s, nm in ((1, "LR"), (-1, "LL")):
-        a0 = math.radians(-90 + s * 27)
-        sp = _spoke(f"Steering_Spoke_{nm}", a0, 0.050, Rc - 0.004, 0.028, 0.024, 0.017,
-                    hub_z + 0.004, -0.004, leather)
-        objs.append(sp)
-    # trapezoid insert between the lower spokes: black gloss centre, alu frame
-    trap = [(-0.030, -0.066), (0.030, -0.066), (0.066, -0.140), (-0.066, -0.140)]
+    # lower spoke (v0.3, cockpit.jpg): ONE wide leather spoke from the hub to
+    # the rim at 6 o'clock, ~70 mm wide at the hub and ~125 mm where it meets
+    # the rim, with a small brushed-aluminium trapezoid inlay near the rim
+    sp = _spoke("Steering_Spoke_Low", math.radians(-90), 0.050, Rc - 0.004, 0.072, 0.125, 0.018,
+                hub_z + 0.004, -0.004, leather, nlen=18)
+    objs.append(sp)
     from ..core.curves import rounded_polygon
-    tp = rounded_polygon(trap, 0.008, 5)
-    base = g.prism("Steering_V_Insert_Base", tp, hub_z - 0.006, hub_z + 0.010, COL, leather,
-                   bevel=0.003)
-    objs.append(base)
-    tp_in = rounded_polygon([(-0.018, -0.075), (0.018, -0.075), (0.050, -0.134), (-0.050, -0.134)],
-                            0.006, 5)
-    alu = g.prism("Steering_V_Insert_Alu", tp_in, hub_z + 0.010, hub_z + 0.0135, COL,
-                  ctx.mat("aluminium_brushed"), bevel=0.0012)
+    tp_in = rounded_polygon([(-0.022, -0.118), (0.022, -0.118), (0.034, -0.146), (-0.034, -0.146)],
+                            0.005, 5)
+    alu = g.prism("Steering_V_Insert_Alu", tp_in, hub_z + 0.0105, hub_z + 0.0135, COL,
+                  ctx.mat("aluminium_brushed"), bevel=0.0010)
     objs.append(alu)
     blk = g.prism("Steering_V_Insert_Black", rounded_polygon(
-        [(-0.0145, -0.0785), (0.0145, -0.0785), (0.0455, -0.1305), (-0.0455, -0.1305)], 0.004, 5),
-        hub_z + 0.0135, hub_z + 0.0145, COL, ctx.mat("black_satin"))
+        [(-0.018, -0.1215), (0.018, -0.1215), (0.0285, -0.1425), (-0.0285, -0.1425)], 0.003, 5),
+        hub_z + 0.0135, hub_z + 0.0142, COL, ctx.mat("piano_black"))
     objs.append(blk)
 
     # airbag: domed, rounded-square module
@@ -202,7 +196,7 @@ def _rim_stitches(ctx, L, rim, W, Rc):
     surf = g.Surface(rim)
     b = g.Batch("Steering_Rim_Stitching", COL, ctx.mat("stitch_grey"))
     t_seam = math.radians(118)           # section angle of the seam (inner, driver side)
-    gaps = [0.0, math.pi, math.radians(-63), math.radians(-117)]
+    gaps = [0.0, math.pi, math.radians(-70), math.radians(-110)]
     segs = []
     bounds = sorted([(a % (2 * math.pi)) for a in gaps])
     for i, a in enumerate(bounds):

@@ -66,7 +66,7 @@ def _stray_walls(ob, bvh, tol=0.006):
     ob.data.polygons.foreach_get("material_index", M)
     C = np.zeros(n * 3)
     ob.data.polygons.foreach_get("center", C)
-    C = C.reshape(-1, 3)[M != 0]
+    C = C.reshape(-1, 3)[M == 1]
     if len(C) == 0:
         return 0
     far = 0
@@ -265,8 +265,12 @@ def build(ctx):
     ctx.register("skin_ref", ref)
 
     t = time.time()
-    mesh.solidify(skin, SHELL_THICKNESS, offset=-1.0)
+    # slot 0 paint (outer layer), slot 1 dark (cut walls), slot 2 inner face
+    # of the sheet (e-coat grey: what is seen from inside the car / through
+    # the gaps instead of a white inner surface)
     mesh.assign_material(skin, dark, slot_only=True)
+    mesh.assign_material(skin, ctx.mat("body_inner"), slot_only=True)
+    mesh.solidify(skin, SHELL_THICKNESS, offset=-1.0, material_offset=2)
 
     cut_col = scene.temp_collection("_cutters_body")
     # v0.3: shut-line gaps first, large openings last.  A gap cutter whose end

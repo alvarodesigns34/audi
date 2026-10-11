@@ -323,12 +323,13 @@ def add_subsurf(ob, levels=2, apply=True):
     return ob
 
 
-def solidify(ob, thickness, offset=-1.0, apply=True, even=True, rim=True):
+def solidify(ob, thickness, offset=-1.0, apply=True, even=True, rim=True, material_offset=0):
     m = ob.modifiers.new("solidify", "SOLIDIFY")
     m.thickness = thickness
     m.offset = offset
     m.use_even_offset = even
     m.use_rim = rim
+    m.material_offset = material_offset
     if apply:
         apply_modifiers(ob)
     return ob

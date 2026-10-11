@@ -167,6 +167,7 @@ def get(key: str, paint="ibis_white"):
     lib = {
         # ---- body ----
         "paint": lambda: principled("Paint_Body", **PAINTS[paint]),
+        "body_inner": lambda: principled("Body_Inner_Ecoat", "#3A3C3E", roughness=0.6),
         "gap": lambda: principled("Panel_Gap_Dark", "#0A0A0A", roughness=0.8),
         "black_gloss": lambda: principled("Black_HighGloss", "#050505", roughness=0.08, coat=1.0, coat_rough=0.02),
         "black_satin": lambda: principled("Black_Satin_Plastic", "#0C0C0C", roughness=0.45),
