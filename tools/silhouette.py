@@ -129,7 +129,7 @@ def main():
     W, H = cfg["size"]
     photo = os.path.join(ROOT, "reference", "photos", f"{a.name}.jpg")
     color = a.color or {"side": "red", "yellow": "yellow", "yellow_rear": "yellow",
-                        "front": "red", "rearq": "red"}.get(a.name)
+                        "front": "red", "rearq": "red", "rearsq": "red", "rearq2": "red", "fl_rear": "red"}.get(a.name)
     if color == "none":
         color = None
     skin = build_skin([e for e in a.extra.split(",") if e])
@@ -225,15 +225,15 @@ def outline_curves(skin, cam_y):
         if len(PP) > 2:
             out.append(("arch", PP, (255, 0, 160), False))
     front_yz("intake", op.SIDE_INTAKE, (0, 200, 255))
-    tl = np.asarray(op.TAILLIGHT_REAR, float)
-    front_yz("taillight", tl, (255, 40, 40), rear=True)
-    side_xz("taillight_side", op.TAILLIGHT_SIDE_XZ, (255, 40, 40))
+    P, N, _ = op.taillight_outline(surf, mirror=s < 0)
+    if len(P) > 2:
+        out.append(("taillight", P, (255, 40, 40), True))
     top_xy("windscreen", op.mirror_outline(op.WINDSCREEN), (0, 255, 255))
-    front_yz("rear_window", op.mirror_outline(op.REAR_WINDOW_YZ, axis=0), (0, 255, 255),
-             rear=True, mirror=False)
-    t = np.asarray(op.TAILGATE, float)
-    front_yz("tailgate", np.vstack([t, (t[::-1] * [-1, 1])[1:]]), (255, 255, 255), rear=True,
-             closed=False, mirror=False)
+    P, N = op.rear_glass_outline(surf)
+    if len(P) > 2:
+        out.append(("rear_window", P, (0, 255, 255), True))
+    for nm, P, N, closed in op.tailgate_gap_curves(surf):
+        out.append((nm, P, (255, 255, 255), closed))
     d = np.asarray(op.DIFFUSER, float)
     front_yz("diffuser", np.vstack([d[:-1], (d[::-1] * [-1, 1])[1:-1]]), (200, 0, 255), rear=True,
              mirror=False)

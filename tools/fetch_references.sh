@@ -26,4 +26,23 @@ dl "Audi A3 Sportback 1.4 TFSI Ambition S line Imolagelb.JPG" yellow.jpg
 dl "Audi A3 Sportback 1.4 TFSI Ambition S line Imolagelb Heck.JPG" yellow_rear.jpg
 dl "Audi A3 8V Ambition design selection capriorange 2.0 TDI Gletscherweiß Cockpit.JPG" cockpit.jpg   # 4-spoke wheel
 dl "Audi A3 8V Ambition design selection capriorange 2.0 TDI Gletscherweiß Innenraum.JPG" interior.jpg
+# v0.3: more views (same red show car as side/front/rearq; facelift 2017 Sportback
+# has the same body shell above the bumpers/lamps; Chinese-market series)
+dl "Audi A3 Sportback 8V (rear quarter 2).JPG" rearq2.jpg
+dl "Audi A3 Sportback 8V (rear side quarter).JPG" rearsq.jpg
+dl "Audi A3 Sportback 8V (front quarter).JPG" frontq.jpg
+dl "Audi A3 SportBack 2017 (rear).jpg" fl_rear.jpg            # facelift, pure rear view
+dl "Audi A3 SportBack 2017 (side).jpg" fl_side.jpg
+dl "Audi A3 SportBack 2017 (front).jpg" fl_front.jpg
+dl "2012 Audi A3 Sportback rear.jpg" rear2012.jpg
+dl "Audi A3 8V Ambition design selection capriorange 2.0 TDI Gletscherweiß Heck.JPG" white_rear.jpg
+dl "Audi A3 8V Ambition design selection capriorange 2.0 TDI Gletscherweiß Front.JPG" white_front.jpg
+dl "Audi A3 8V Ambition design selection capriorange 2.0 TDI Gletscherweiß MMI touch.JPG" mmi.jpg
+dl "AUDI A3 SPORTBACK Typ 8V China.jpg" cn0.jpg
+dl "AUDI A3 SPORTBACK Typ 8V China (2).jpg" cn2.jpg
+dl "AUDI A3 SPORTBACK Typ 8V China (3).jpg" cn3.jpg
+dl "AUDI A3 SPORTBACK Typ 8V China (4).jpg" cn4.jpg
+dl "AUDI A3 SPORTBACK Typ 8V China (5).jpg" cn5.jpg
+dl "AUDI A3 SPORTBACK Typ 8V China (6).jpg" cn6.jpg
+dl "The engineroom of Audi A3 Sportback 30 TFSI sport (DBA-8VCXS).jpg" bay_tfsi.jpg
 echo "References in $DIR"

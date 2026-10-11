@@ -181,16 +181,6 @@
    941.1
   ]
  },
- "spoiler_end_lower": {
-  "sline_rear": [
-   1148.9,
-   159.1
-  ],
-  "yellow_rear": [
-   855.6,
-   277.8
-  ]
- },
  "rw_bottom_corner": {
   "sline_rear": [
    1248.9,
@@ -207,6 +197,10 @@
   "yellow_rear!far": [
    213.3,
    404.4
+  ],
+  "rearq": [
+   844.5,
+   423.5
   ]
  },
  "tl_outer_top": {
@@ -217,6 +211,18 @@
   "yellow_rear": [
    868.9,
    540
+  ],
+  "side": [
+   164,
+   380
+  ],
+  "rearq": [
+   977.5,
+   507.5
+  ],
+  "rearsq": [
+   512,
+   423
   ]
  },
  "tl_outer_bottom": {
@@ -227,6 +233,18 @@
   "yellow_rear": [
    855.6,
    624.4
+  ],
+  "side": [
+   143.8,
+   421
+  ],
+  "rearq": [
+   970.5,
+   602
+  ],
+  "rearsq": [
+   498,
+   473
   ]
  },
  "tl_inner_top": {
@@ -265,6 +283,10 @@
   "yellow_rear": [
    691.1,
    533.3
+  ],
+  "rearq": [
+   788.5,
+   500.5
   ]
  },
  "tl_split_bottom": {
@@ -275,6 +297,10 @@
   "yellow_rear": [
    624.4,
    631.1
+  ],
+  "rearq": [
+   753.5,
+   616
   ]
  },
  "tailgate_bottom_corner": {
@@ -376,6 +402,10 @@
   "side": [
    746.7,
    360
+  ],
+  "rearsq": [
+   1170,
+   378
   ]
  },
  "bgap_bottom": {
@@ -386,6 +416,10 @@
   "side": [
    758.3,
    680
+  ],
+  "rearsq": [
+   1200,
+   730
   ]
  },
  "rdr_top": {
@@ -396,6 +430,10 @@
   "side": [
    392,
    340
+  ],
+  "rearsq": [
+   758.6,
+   371
   ]
  },
  "rdr_kink": {
@@ -406,6 +444,10 @@
   "side": [
    361,
    386.5
+  ],
+  "rearsq": [
+   764,
+   446
   ]
  },
  "rdr_bottom": {
@@ -416,6 +458,10 @@
   "side": [
    533,
    661.7
+  ],
+  "rearsq": [
+   950,
+   737
   ]
  },
  "handle_front": {
@@ -436,6 +482,10 @@
   "side": [
    447,
    434
+  ],
+  "rearsq": [
+   891,
+   481
   ]
  },
  "plate_holder_tl": {
@@ -488,5 +538,72 @@
    688
   ],
   "_centre": true
+ },
+ "# rear v0.3": "rearq (red show car, same as side) added; side/rearq observations of rear features",
+ "qg_tip": {
+  "side": [
+   243.8,
+   332.3
+  ],
+  "rearq": [
+   1010.5,
+   410.5
+  ],
+  "sline_rear": [
+   1090,
+   308
+  ],
+  "yellow_rear": [
+   917.7,
+   448.9
+  ],
+  "rearsq": [
+   592.5,
+   355
+  ]
+ },
+ "rg_top_corner": {
+  "side": [
+   291.4,
+   228.5
+  ],
+  "sline_rear": [
+   1142.5,
+   159.3
+  ],
+  "yellow_rear": [
+   861.1,
+   279.1
+  ],
+  "rearq": [
+   939.4,
+   247.8
+  ],
+  "rearsq": [
+   565.7,
+   224.6
+  ]
+ },
+ "spoiler_tip": {
+  "side": [
+   250.9,
+   207.3
+  ],
+  "sline_rear": [
+   1131.8,
+   126.1
+  ],
+  "yellow_rear": [
+   870.6,
+   256.9
+  ],
+  "rearq": [
+   948.8,
+   221.9
+  ],
+  "rearsq": [
+   598.6,
+   192.5
+  ]
  }
 }

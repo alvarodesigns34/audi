@@ -106,7 +106,7 @@ def main():
 # body offset dz and pitch about the front axle (x=0) applied to the points.
 REFERENCE_PHOTOS = {"sline_front", "sline_rear"}   # WI-RQ 1209, S line sport susp.
 # photos of the same car share one body pose
-CAR_OF = {"yellow": "yellow_car", "yellow_rear": "yellow_car"}
+CAR_OF = {"yellow": "yellow_car", "yellow_rear": "yellow_car", "side": "red_show", "rearq": "red_show"}
 
 
 def solve_all(feats, ref=REFERENCE_PHOTOS):

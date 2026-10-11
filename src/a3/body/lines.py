@@ -54,7 +54,7 @@ X_REAR_SPLIT = -3080
 
 FRONT_CAP = dict(
     centre_z=455,          # nose point height (bumper/plate centre)
-    rings=90,
+    rings=150,
     # plan rounding exponents vs height z (mm): g(u) = (1-u^m)^(1/n)
     # v0.2: squarer lower bumper (intakes sit on a flat face with a tight
     # corner), rounder at headlight height where the lamp wraps round
@@ -63,7 +63,7 @@ FRONT_CAP = dict(
 )
 REAR_CAP = dict(
     centre_z=600,
-    rings=90,
+    rings=150,
     plan_m=[(200, 3.0), (400, 4.2), (800, 4.2), (1000, 3.0), (1350, 2.4)],
     plan_n=[(200, 1.5), (700, 1.4), (1350, 1.6)],
 )
@@ -106,14 +106,22 @@ K2_Z = [(869, 455), (867, 395), (861, 330), (845, 265), (805, 228), (720, 215),
         (500, 205), (300, 190), (-400, 178), (-2400, 178), (-2800, 195),
         (-3100, 240), (-3300, 290), (-3400, 330), (-3430, 400), (-3441, 570)]
 
-K3_W = merged(plan_end(869, 884, 330, m=3.2, n=1.4), [(400, 884), (250, 878), (-150, 872),
-              (-2400, 872), (-2900, 878)], plan_end(-3441, 880, 400, m=3.2, n=1.4, rear=True))
+# v0.3: plan-view taper measured by multi-photo triangulation (side, sline_rear,
+# rearsq, yellow_rear; tools/triangulate.py, tools/bundle.py): the doors sit
+# inboard of the wheel arches (B-pillar gap at the sill y 0.849, rear door
+# rear edge at the sill 0.825) - v0.2 was a constant-width "box".
+K3_W = merged(plan_end(869, 884, 330, m=3.2, n=1.4), [(400, 884), (250, 878), (-150, 868),
+              (-500, 860), (-1500, 852), (-2050, 838), (-2350, 846), (-2650, 872), (-2900, 878)],
+              plan_end(-3441, 880, 400, m=3.2, n=1.4, rear=True))
 K3_Z = [(869, 455), (868, 420), (863, 380), (850, 345), (815, 318), (740, 305),
         (300, 285), (0, 262), (-2500, 262), (-2900, 290), (-3200, 330),
         (-3380, 370), (-3430, 450), (-3441, 570)]
 
+# max-width line: front door 0.86-0.865 (handle 0.865 incl. ~18 mm handle), rear
+# door 0.845 (handle 0.845), full width 892 (1785/2, C) only over the wheels
 K4_W = merged(plan_end(869, 890, 340, m=3.2, n=1.4), [(400, 892), (250, 886), (-150, 880),
-              (-1300, 878), (-2250, 882), (-2700, 892)],
+              (-450, 870), (-1000, 864), (-1500, 858), (-1950, 846), (-2200, 848), (-2450, 868),
+              (-2650, 889), (-2800, 892)],
               plan_end(-3441, 890, 400, m=3.2, n=1.4, rear=True))
 K4_Z = [(869, 455), (860, 470), (820, 495), (700, 510), (300, 520),
         (-1500, 525), (-2600, 540), (-3200, 555), (-3441, 570)]
@@ -127,10 +135,15 @@ K4_Z = [(869, 455), (860, 470), (820, 495), (700, 510), (300, 520),
 # z 0.74); along the side
 # it is measured on the side photo (z 0.736 at x 0.38, 0.79 at 0, 0.846 at
 # -0.475) and on the rear door (kink of the door shut line, z 0.89).
+# v0.3: along the rear door the tornado line recedes (rear door rear edge at the
+# crease: y 0.79, x -2.49, z 0.89) and the rear corner is round in plan at
+# this height (tail lamp front top corner x -2.979 y 0.78 z 0.908, S).
 K5_W = merged([(800, 0), (798, 200), (796, 390), (792, 445), (765, 550), (700, 650),
                (620, 740), (540, 805), (450, 852)],
-              [(300, 857), (100, 862), (-300, 868), (-1200, 872), (-2300, 880), (-2750, 884)],
-              plan_end(-3416, 884, 600, m=2.6, n=1.5, rear=True))
+              [(300, 857), (100, 862), (-300, 862), (-800, 858), (-1500, 850), (-2000, 832),
+               (-2450, 800), (-2700, 794), (-2850, 789), (-2980, 778), (-3080, 755)],
+              [(-3150, 728), (-3250, 662), (-3330, 560), (-3380, 420), (-3405, 260),
+               (-3414, 120), (-3416, 0)])
 K5_Z = [(800, 744), (798, 740), (796, 734), (792, 729), (765, 727), (700, 728),
         (620, 732), (540, 737), (450, 741), (300, 756), (100, 782), (-42, 792),
         (-300, 826), (-475, 846), (-1200, 876), (-2300, 893), (-2900, 904),
@@ -143,37 +156,50 @@ K5_Z = [(800, 744), (798, 740), (796, 734), (792, 729), (765, 727), (700, 728),
 # than v0.1; behind the D-pillar it is the (wider) rear glass bottom edge.
 K6_W = [(787, 0), (783, 120), (770, 260), (740, 400), (690, 500), (600, 560),
         (300, 600), (0, 640), (-250, 700), (-400, 765), (-470, 795), (-545, 805),
-        (-800, 806), (-1700, 808), (-2600, 802), (-2950, 790), (-3150, 765),
-        (-3270, 722), (-3322, 692), (-3352, 580), (-3372, 320), (-3385, 0)]
+        (-800, 806), (-1600, 803), (-2000, 783), (-2450, 735), (-2800, 730),
+        (-2950, 712), (-3080, 668), (-3180, 600), (-3270, 480), (-3330, 320),
+        (-3365, 160), (-3385, 0)]
 K6_Z = [(787, 754), (740, 760), (600, 780), (300, 828), (0, 868),
         (-250, 902), (-400, 936), (-470, 935), (-545, 928), (-1000, 949),
-        (-1500, 971), (-2000, 993), (-2400, 1007), (-2745, 1019), (-3000, 1030),
-        (-3200, 1040), (-3322, 1044), (-3365, 1035), (-3385, 1028)]
+        (-1500, 971), (-2000, 993), (-2400, 1007), (-2800, 1018), (-2950, 1008),
+        (-3080, 990), (-3200, 985), (-3322, 985), (-3365, 985), (-3385, 985)]
+# v0.3 belt taper measured: B-pillar gap at the belt y 0.80 (x -1.58), rear
+# door top rear corner 0.72 (x -2.445, z 1.004), quarter-light rear tip 0.725
+# (x -2.806, z 1.022) - the rear greenhouse is ~80 mm narrower than in v0.2.
 
 # Roof edge (glass top / drip line). Runs on the hood/cowl ahead of the
 # A-pillar base, up the A-pillar, along the roof side, down the D-pillar
 # (rear glass side edge) and across the tailgate at the glass bottom.
 # v0.2: A-pillar lowered/raked (base ~50 mm lower, between the windscreen edge
-# and the DLO edge measured on sline_front / side); D-pillar edge moved out to
-# the real rear-glass side (|y| 0.61-0.69 instead of 0.50-0.56).
+# and the DLO edge measured on sline_front / side).
+# v0.3: the rear glass wraps far forward: its side edge (= tailgate shut line)
+# runs from the top corner under the spoiler end (x -2.76, y 0.57, z 1.27) down
+# and back to the bottom corner (x -3.095, y 0.64, z 1.025) - triangulated on
+# side, sline_rear, yellow_rear, rearsq (S, +-25 mm).  v0.2 had this edge
+# 250-370 mm further back.
 K7_W = [(780, 0), (775, 70), (760, 150), (720, 230), (650, 290), (400, 330),
         (0, 380), (-300, 480), (-420, 640), (-480, 725), (-545, 745),
         (-660, 722), (-760, 702), (-860, 687), (-960, 674), (-1060, 662),
-        (-1160, 650), (-1260, 636), (-1360, 626), (-1500, 618), (-2200, 616),
-        (-2700, 606), (-2950, 594), (-3120, 588), (-3200, 610), (-3260, 645),
-        (-3300, 668), (-3325, 682), (-3345, 600), (-3358, 350), (-3362, 0)]
+        (-1160, 650), (-1260, 636), (-1360, 626), (-1500, 618), (-2200, 614),
+        (-2500, 608), (-2700, 598), (-2780, 590), (-2840, 592), (-2900, 600),
+        (-3000, 618), (-3095, 640), (-3180, 575), (-3260, 450), (-3320, 280),
+        (-3345, 0)]
 K7_Z = [(780, 756), (700, 768), (400, 815), (0, 875), (-300, 925),
         (-420, 945), (-480, 962), (-545, 995), (-660, 1058), (-760, 1104),
         (-860, 1150), (-960, 1195), (-1060, 1240), (-1160, 1283), (-1260, 1318),
-        (-1360, 1342), (-1500, 1354), (-2200, 1354), (-2700, 1340),
-        (-2950, 1325), (-3120, 1305), (-3200, 1240), (-3260, 1150),
-        (-3300, 1090), (-3325, 1062), (-3345, 1052), (-3358, 1046), (-3362, 1044)]
+        (-1360, 1342), (-1500, 1354), (-2200, 1354), (-2500, 1348), (-2700, 1336),
+        (-2780, 1300), (-2840, 1235), (-2900, 1170), (-3000, 1095), (-3095, 1030),
+        (-3180, 1033), (-3260, 1034), (-3320, 1034), (-3345, 1034)]
 
 # Crease strength at K6 / K7 (1 = sharp glass/roof junction, 0 = smooth, e.g.
 # on the hood and on the tailgate where those points are only construction
 # points of the surface).
 K6_CREASE = [(787, 0), (-380, 0), (-470, 1), (-3330, 1), (-3380, 1)]
 K7_CREASE = [(780, 0), (-330, 0), (-430, 1), (-3330, 1), (-3352, 1)]
+# lift of the section tangent leaving K7 towards the roof (deg): 0 along the
+# cabin (roof side rail), rising behind the C-pillar where the roof spoiler sits
+# above the wrapped rear glass (E, fitted to the spoiler ends, see v0.3 notes)
+K7_LIFT = [(869, 0), (-2760, 0), (-2860, 55), (-2980, 65), (-3441, 65)]
 
 # Segment bulge (fraction of chord, + = convex outward) ------------------------------
 BULGE = {

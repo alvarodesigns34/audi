@@ -27,10 +27,13 @@ GAP = 4.0  # mm, typical 8V shut-line gap (3.5-4.5)
 # v0.2: re-digitised on the side photo with the rim-contour calibration
 # (tools/make_match.py, rms < 1 px) and ray cast onto the skin; door features
 # cross-checked by triangulation side + rear 3/4 (tools/triangulate.py, <= 3 px).
+# v0.3: quarter-light rear edge re-measured (tip x -2.806, y 0.725, z 1.022 from
+# side + sline_rear + yellow_rear + rearsq; edge back-projected on side.jpg).
 DLO_SIDE = [
     (-545, 927), (-1000, 949), (-1500, 971), (-2000, 993), (-2400, 1007),
-    (-2690, 1016), (-2745, 1021), (-2722, 1058), (-2672, 1118), (-2615, 1183),
-    (-2565, 1240), (-2528, 1276), (-2490, 1300), (-2430, 1314), (-2200, 1326),
+    (-2700, 1015), (-2775, 1017), (-2808, 1019), (-2790, 1036), (-2769, 1054),
+    (-2707, 1123), (-2640, 1181), (-2571, 1233), (-2525, 1265), (-2480, 1293),
+    (-2430, 1312), (-2200, 1326),
     (-1800, 1331), (-1500, 1326), (-1300, 1315), (-1205, 1303), (-1150, 1286),
     (-1060, 1246), (-960, 1196), (-860, 1142), (-779, 1094), (-700, 1043),
     (-625, 986), (-575, 950),
@@ -56,9 +59,10 @@ REAR_DOOR_REAR = [(-2440, 1012), (-2468, 945), (-2478, 890), (-2431, 807),
 FRONT_BUMPER_SPLIT = [(565, 642), (540, 628), (470, 574), (410, 520), (350, 470),
                       (300, 440)]
 # rear bumper / quarter panel seam: from the tail lamp's lower outer corner
-# down and forwards into the arch (yellow_rear.jpg)
-REAR_BUMPER_SPLIT = [(-3015, 812), (-3005, 790), (-2985, 700), (-2960, 600),
-                     (-2945, 520), (-2925, 420)]
+# down, then forward along the top of the bumper into the wheel arch.
+# v0.3: sline_rear ray casts on the v0.3 skin, checked on yellow_rear / rearsq.
+REAR_BUMPER_SPLIT = [(-3069, 791), (-3068, 750), (-3063, 723), (-3062, 672), (-3051, 643),
+                     (-3032, 631), (-2941, 615), (-2862, 601), (-2815, 596)]
 
 # Fuel filler flap: right-hand side (-Y), rounded rectangle (x, z centre)
 FUEL_DOOR = dict(cx=-2660, cz=900, w=180, h=112, r=26)
@@ -72,15 +76,6 @@ HOOD_SIDE = [(-400, 775), (-250, 795), (-50, 815), (150, 830), (300, 842),
 HOOD_FRONT = [(0, 727), (300, 725), (392, 716), (445, 702), (600, 717), (750, 733),
               (850, 743)]
 
-# Tailgate outline (rear view, y/z), one side, from top to centre bottom
-# v0.2: follows the wider rear glass (25 mm outboard of it), through the tail
-# lamp split (y 0.68 z 0.917 / y 0.64 z 0.783) to the lower corner (y 0.556,
-# z 0.659) and the bottom edge (sline_rear ray casts)
-TAILGATE = [(585, 1318), (620, 1292), (652, 1232), (682, 1150), (705, 1080),
-            (716, 1040), (705, 980), (684, 917), (662, 850), (641, 783),
-            (602, 712), (556, 659), (450, 654), (0, 652)]
-# roof / tailgate gap (top view x, y): across the roof just ahead of the spoiler
-TAILGATE_TOP = [(-3110, 0), (-3111, 300), (-3114, 500), (-3118, 600)]
 # hood rear edge (top view): ~45 mm ahead of the windscreen base; the strip
 # between them is the black cowl panel
 HOOD_REAR = [(-306, 0), (-322, 300), (-370, 600), (-400, 775)]
@@ -88,15 +83,6 @@ HOOD_REAR = [(-306, 0), (-322, 300), (-370, 600), (-400, 775)]
 # Windscreen (top view x/y outline, one side, base -> pillar -> header)
 WINDSCREEN = [(-350, 0), (-365, 300), (-400, 600), (-440, 760), (-1195, 520),
               (-1280, 500), (-1315, 300), (-1322, 0)]
-# Rear window, rear view (y, z) half outline from the top centre round to the
-# bottom centre, projected along x (the glass is steep at its corners, so a
-# top-view outline does not work).  Bottom corners at |y| 0.69, z 1.045
-# (sline_rear/yellow_rear); the top edge hides under the roof spoiler.
-REAR_WINDOW_YZ = [(0, 1305), (300, 1302), (500, 1294), (560, 1280), (598, 1240),
-                  (635, 1160), (668, 1085), (684, 1048), (655, 1036), (400, 1031),
-                  (0, 1029)]
-REAR_WINDOW_X = (-3.60, -3.13)   # prism range along x (m)
-
 # Wheel arch openings: circles about the wheel centres (rim-lip edge of the
 # red side photo mask: front r 358-367, rear r 333-357, tighter behind the
 # wheel)
@@ -210,8 +196,6 @@ def window_cutters(col, material=None):
     obs += side_prism("Cut_Sail", SAIL, 0.6, 1.2, col, material=material)
     ws = mirror_outline(WINDSCREEN)
     obs.append(top_prism("Cut_Windscreen", ws, 0.90, 1.60, col, material=material))
-    obs.append(rear_prism("Cut_RearWindow", mirror_outline(REAR_WINDOW_YZ, axis=0),
-                          REAR_WINDOW_X[0], REAR_WINDOW_X[1], col, material=material))
     return obs
 
 
@@ -246,7 +230,7 @@ def gap_cutters(col, material=None):
                           0.60, 1.00, col, material=material))
     # tailgate (rear view)
     # top-view gaps across the roof (tailgate top) and the hood rear edge
-    for nm, half in (("Gap_TailgateTop", TAILGATE_TOP), ("Gap_HoodRear", HOOD_REAR)):
+    for nm, half in (("Gap_HoodRear", HOOD_REAR),):
         h = np.asarray(half, float)
         full = np.vstack([h[::-1] * [1, -1], h[1:]])
         obs.append(top_prism(nm, thick_polyline(catmull_rom(full, 6), g), 0.70, 1.60, col,
@@ -287,14 +271,9 @@ def ribbon_cutter(name, P, N, width, depth, col, material=None, closed=True):
 def gap_cutters_local(surf, col, material=None):
     """Gaps whose straight prisms would also hit other surfaces or widen on
     oblique skin: projected onto the skin and cut with a surface ribbon."""
-    from ..core.curves import catmull_rom, resample
-    from .surftools import clean_projection
     obs = []
-    tg = np.asarray(TAILGATE, float)
-    full = np.vstack([tg, (tg[::-1] * [-1, 1])[1:-1]]) * 1e-3
-    loop = resample(catmull_rom(full, 8, closed=True), 700, closed=True)
-    P, N = clean_projection(*surf.project(loop, "YZ", side=-1))
-    obs.append(ribbon_cutter("Gap_Tailgate", P, N, GAP * 1e-3, 0.03, col, material))
+    for nm, P, N, closed in tailgate_gap_curves(surf):
+        obs.append(ribbon_cutter(nm, P, N, GAP * 1e-3, 0.03, col, material, closed=closed))
     return obs
 
 
@@ -416,10 +395,6 @@ def front_cutters(surf, col, material=None):
 # (reference/match_sline_rear.json) onto the skin.  Left side, mm.
 # --------------------------------------------------------------------------
 
-# Tail lamp: rear-face part (y, z) from the inner tip outwards along the top,
-# then the side part (x, z) and back along the lower edge.
-# v0.2: heights from sline_rear (reference car) ray casts, cross-checked on
-# yellow_rear (+23 mm ride height) and the side photo.
 # S line diffuser (rear view, half outline, top edge from the side to centre)
 DIFFUSER = [(0, 378), (300, 378), (560, 376), (660, 372), (710, 355), (742, 320),
             (760, 280), (770, 240), (0, 240)]
@@ -429,36 +404,210 @@ DIFFUSER = [(0, 378), (300, 378), (560, 376), (660, 372), (710, 355), (742, 320)
 EXHAUST_TIPS = [(490, 285), (570, 285)]
 EXHAUST_D = 80
 
+# --------------------------------------------------------------------------
+# v0.3 rear end: 3D outlines (x, y, z mm, left side) measured by ray casting the
+# calibrated sline_rear photo onto the v0.3 skin (tools/raycast_skin.py) and
+# checked by re-projection into yellow_rear and rearsq (<= 10-12 px, the yellow
+# car rides 24 mm higher).  Projected onto the skin from an eye point, so that
+# cutters follow the wrap-around of the rear corners.
+# --------------------------------------------------------------------------
 
-TL_SPLIT_X = -3050   # rear-face part behind, side part ahead of this plane
-TAILLIGHT_REAR = [(380, 872), (420, 918), (520, 925), (640, 921), (740, 915),
-                  (900, 912), (900, 792), (800, 791), (700, 770), (600, 790),
-                  (500, 828), (420, 858)]
-TAILLIGHT_SIDE_XZ = [(-3050, 910), (-3000, 905), (-2958, 886), (-2946, 860),
-                     (-2960, 830), (-3000, 802), (-3050, 796)]
+REAR_EYE = (-6.5, 0.0, 1.9)          # projection centre for glass / tailgate
+LAMP_EYE = (-5.2, 3.4, 0.95)         # projection centre for the left tail lamp
+
+# Tail lamp outline (left), from the outer front-top corner along the top edge
+# to the inner tip and back along the lower edge.  The tailgate shut line splits
+# it into the outer (body) and inner (tailgate) units.
+TAILLIGHT_3D = [
+    (-2983, 777, 908), (-3091, 738, 923), (-3201, 654, 928), (-3284, 542, 930),
+    (-3322, 433, 928), (-3330, 401, 922), (-3339, 346, 867), (-3337, 358, 851),
+    (-3321, 477, 822), (-3297, 584, 792), (-3283, 622, 772), (-3204, 718, 773),
+    (-3126, 769, 779), (-3068, 802, 793), (-3031, 799, 821), (-2986, 786, 878),
+]
+
+# Rear glass: the side edges and the bottom edge run on the K7 crease (the
+# glass is bonded flush; its edge is the tailgate shut line above the glass
+# corner).  Top edge hidden under the roof spoiler (E): from the spoiler end
+# (trailing-edge end x -2.795, y 0.60, z 1.268, sline_rear/rearsq) to the
+# centre under the spoiler.
+REAR_GLASS_TOP = [(-2800, 592, 1290), (-2880, 540, 1290), (-2990, 450, 1290),
+                  (-3100, 320, 1290), (-3190, 160, 1288), (-3215, 0, 1287)]
+REAR_GLASS_X = (-2800, -3095)        # x range of the K7 part (side edge, top -> bottom corner)
+# bottom edge from the corner to the centre (sline_rear glass bottom, z 1.025-1.034)
+REAR_GLASS_BOTTOM = [(-3095, 640, 1025), (-3180, 560, 1028), (-3260, 420, 1031),
+                     (-3310, 220, 1033), (-3325, 0, 1034)]
+REAR_GLASS_INSET = 5.0               # mm inside the K7 crease
+
+# Tailgate shut line below the glass: glass bottom corner -> lamp top (split)
+# -> through the lamp -> lamp bottom -> tailgate lower corner -> bottom edge.
+TAILGATE_LOW = [(-3112, 660, 1015), (-3161, 653, 975), (-3204, 650, 931),
+                (-3289, 603, 795), (-3294, 595, 779), (-3310, 564, 728),
+                (-3323, 536, 686), (-3334, 507, 657), (-3346, 466, 647),
+                (-3364, 276, 642), (-3368, 0, 640)]
+# Roof / tailgate seam (spoiler front edge) across the roof and its outer end
+# where the spoiler end meets the glass edge.  End point S (rearsq + sline_rear
+# agree within 1 px), centre E (x behind the roof fin antenna at -2.54).
+TAILGATE_SEAM = [(-2700, 0, 1381), (-2700, 300, 1366), (-2706, 420, 1354), (-2720, 500, 1342),
+                 (-2742, 578, 1323)]
+SPOILER_END = [(-2742, 578, 1323), (-2760, 590, 1306), (-2785, 592, 1290)]
+SPOILER_TE = [(-3160, 0, 1312), (-3130, 250, 1310), (-3060, 400, 1303), (-2960, 500, 1292),
+              (-2860, 560, 1278), (-2795, 600, 1268)]
 
 
-def taillight_prisms(col, material=None, mirror=False, grow=0.0):
-    """Two planar prisms (rear face + side) sharing the plane x = TL_SPLIT_X."""
-    xs = TL_SPLIT_X * 1e-3
-    rear = np.asarray(TAILLIGHT_REAR, float) * 1e-3
-    side = np.asarray(TAILLIGHT_SIDE_XZ, float) * 1e-3
+def _eye_dirs(P, eye):
+    d = P - np.asarray(eye, float)
+    return d / np.linalg.norm(d, axis=1)[:, None]
+
+
+def project_from(surf, pts, eye, inset=0.0):
+    """Ray cast 3D points (m) onto the skin from an eye point; returns hits and
+    normals (missing hits dropped)."""
+    from mathutils import Vector
+    eye = np.asarray(eye, float)
+    P, N = [], []
+    for p in np.asarray(pts, float):
+        d = p - eye
+        L = np.linalg.norm(d)
+        hit = surf.bvh.ray_cast(Vector(eye), Vector(d / L), L + 1.0)
+        if hit[0] is not None:
+            P.append(np.array(hit[0][:]))
+            N.append(np.array(hit[1][:]))
+    return np.array(P), np.array(N)
+
+
+def persp_cutter(name, P, eye, near, far, col, material=None):
+    """Closed solid around a 3D loop P lying on the skin, seen from `eye`: a
+    cone from an apex between the eye and the skin through the loop (pushed
+    `near` towards the eye), ending `far` beyond the skin.  The near side is
+    the cone apex (not a fan through the loop centroid, which would lie inside
+    the car for loops that wrap round a corner)."""
+    P = np.asarray(P, float)
+    eye = np.asarray(eye, float)
+    D = _eye_dirs(P, eye)
+    dist = np.linalg.norm(P - eye, axis=1)
+    md = D.mean(0)
+    md /= np.linalg.norm(md)
+    apex = eye + md * max(0.2, dist.min() - near - 0.35)
+    outer = P - D * near
+    inner = P + D * far
+    n = len(P)
+    verts = list(map(tuple, outer)) + list(map(tuple, inner))
+    verts += [tuple(apex), tuple(np.mean(inner, 0))]
+    a, b = 2 * n, 2 * n + 1
+    faces = []
+    for k in range(n):
+        j = (k + 1) % n
+        faces.append((k, j, n + j, n + k))
+        faces.append((a, j, k))
+        faces.append((b, n + k, n + j))
+    ob = mesh.object_from_pydata(name, verts, faces, col, material, smooth=False)
+    mesh.recalc_normals(ob)
+    return ob
+
+
+def _k7_edge(bl=None):
+    """Points (m) of the K7 crease from the glass top corner round the bottom
+    corner to the centre (left side)."""
+    from .surface import BodyLines
+    bl = bl or BodyLines()
+    xs = np.linspace(REAR_GLASS_X[0] * 1e-3, REAR_GLASS_X[1] * 1e-3, 60)
+    K = bl.keypoints(xs)
+    w, z = K["K7"]
+    return np.stack([xs, w, z], 1)
+
+
+def rear_glass_outline(surf, inset=None, n=360):
+    """Closed rear glass outline on the skin (both sides), inset from K7."""
+    from ..core.curves import catmull_rom, resample
+    inset = REAR_GLASS_INSET if inset is None else inset
+    edge = _k7_edge()                                       # top corner -> bottom corner
+    bottom = np.asarray(REAR_GLASS_BOTTOM, float) * 1e-3     # bottom corner -> centre
+    top = np.asarray(REAR_GLASS_TOP, float) * 1e-3          # corner -> centre top
+    half = np.vstack([top[::-1], edge[1:-1], bottom])       # centre top -> corners -> centre bottom
+    other = half[::-1] * [1, -1, 1]
+    loop = np.vstack([half[:-1], other[:-1]])
+    loop = resample(catmull_rom(loop, 4, closed=True), n, closed=True)
+    # inset in the eye's image plane: move every point towards the loop centre
+    # (as seen from the eye) by `inset` mm measured at the point's distance
+    eye = np.asarray(REAR_EYE, float)
+    c = loop.mean(0)
+    D = _eye_dirs(loop, eye)
+    lat = c - loop
+    lat -= (lat * D).sum(1)[:, None] * D
+    lat /= np.linalg.norm(lat, axis=1)[:, None] + 1e-12
+    loop = loop + lat * inset * 1e-3
+    P, N = project_from(surf, loop, eye)
+    return P, N
+
+
+def rear_glass_cutter(name, surf, col, material=None, inset=None, near=0.08, far=0.10):
+    P, N = rear_glass_outline(surf, inset)
+    return persp_cutter(name, P, REAR_EYE, near, far, col, material)
+
+
+def taillight_outline(surf, mirror=False, n=200, grow=0.0):
+    from ..core.curves import catmull_rom, resample
+    pts = np.asarray(TAILLIGHT_3D, float) * 1e-3
+    eye = np.asarray(LAMP_EYE, float)
+    if mirror:
+        pts = pts * [1, -1, 1]
+        eye = eye * [1, -1, 1]
+    loop = resample(catmull_rom(pts, 6, closed=True), n, closed=True)
     if grow:
-        rear = mesh.polyline_offset_2d(rear, grow if mesh.polygon_area(rear) > 0 else -grow)
-    s = -1 if mirror else 1
-    sfx = ".R" if mirror else ".L"
-    r = mesh.extrude_polygon("Cut_TaillightRear" + sfx, rear * [s, 1], xs + 3.6, plane="YZ",
-                             offset=-3.6, collection=col, material=material)
-    y0, y1 = (0.70, 1.05) if not mirror else (-1.05, -0.70)
-    sd = mesh.extrude_polygon("Cut_TaillightSide" + sfx, side, y1 - y0, plane="XZ",
-                              offset=y0, collection=col, material=material)
-    return [r, sd]
+        c = loop.mean(0)
+        D = _eye_dirs(loop, eye)
+        lat = loop - c
+        lat -= (lat * D).sum(1)[:, None] * D
+        lat /= np.linalg.norm(lat, axis=1)[:, None] + 1e-12
+        loop = loop + lat * grow
+    P, N = project_from(surf, loop, eye)
+    return P, N, eye
+
+
+def taillight_cutter(name, surf, col, material=None, mirror=False, near=0.06, far=0.09,
+                     grow=0.0):
+    P, N, eye = taillight_outline(surf, mirror, grow=grow)
+    return persp_cutter(name, P, eye, near, far, col, material)
+
+
+def tailgate_gap_curves(surf):
+    """(name, P, N, closed) curves of the tailgate shut lines on the skin."""
+    from mathutils import Vector
+    from ..core.curves import catmull_rom, resample
+    out = []
+    # lower shut line, both sides joined across the bottom
+    low = np.asarray(TAILGATE_LOW, float) * 1e-3
+    full = np.vstack([low, (low[::-1] * [1, -1, 1])[1:]])
+    full = resample(catmull_rom(full, 8), 400)
+    P, N = project_from(surf, full, REAR_EYE)
+    out.append(("Gap_TailgateLow", P, N, False))
+    # roof seam (cast from above) + spoiler end lines down to the glass corner
+    seam = np.asarray(TAILGATE_SEAM, float) * 1e-3
+    end = np.asarray(SPOILER_END, float) * 1e-3
+    sxy = seam[:, :2]                                        # centre -> left end
+    pts2 = np.vstack([(sxy[::-1] * [1, -1]), sxy[1:]])       # right end -> left end
+    pts2 = resample(catmull_rom(pts2, 8), 300)
+    Ps, Ns = [], []
+    for x, y in pts2:
+        hit = surf.bvh.ray_cast(Vector((x, y, 3.0)), Vector((0, 0, -1)), 4.0)
+        if hit[0] is not None:
+            Ps.append(np.array(hit[0][:]))
+            Ns.append(np.array(hit[1][:]))
+    seam3 = np.array(Ps)
+    # join the spoiler ends: right end ... seam ... left end
+    endL = end
+    endR = end[::-1] * [1, -1, 1]
+    chain = np.vstack([endR[:-1], seam3, endL[1:]]) if len(seam3) else np.vstack([endR, endL])
+    P, N = project_from(surf, chain, REAR_EYE)
+    out.append(("Gap_TailgateTop", P, N, False))
+    return out
 
 
 def rear_cutters(surf, col, material=None):
     obs = []
-    for mirror in (False, True):
-        obs += taillight_prisms(col, material, mirror)
+    obs.append(rear_glass_cutter("Cut_RearWindow", surf, col, material))
+    for mirror, sfx in ((False, ".L"), (True, ".R")):
+        obs.append(taillight_cutter("Cut_Taillight" + sfx, surf, col, material, mirror=mirror))
     g = np.asarray(DIFFUSER, float)
     full = np.vstack([g[:-1], (g[::-1] * [-1, 1])[1:-1]])
     # straight prism along X restricted to the bumper's rear face region

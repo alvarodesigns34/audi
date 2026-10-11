@@ -125,6 +125,20 @@ def section(bl: BodyLines, x: float):
         c = crease.get(KEYS[i], 0.0)
         tin[i] = _unit((1 - c) * smooth + c * a) if np.any(a) else smooth
         tout[i] = _unit((1 - c) * smooth + c * b) if np.any(b) else smooth
+        if KEYS[i] == "K7":
+            # v0.3: lift of the K7 out-tangent (deg, towards vertical) - the
+            # rounded-box section of the rear roof / spoiler over the wrapped
+            # rear glass (a symmetric bulge cannot do it without overshooting
+            # the roof centre line)
+            lift = np.radians(float(bl.crease(L.K7_LIFT, x)))
+            if lift:
+                ca, sa = np.cos(lift), np.sin(lift)
+                t = tout[i]
+                # rotate clockwise in the (y, z) half plane (towards +z for an
+                # inward-pointing tangent)
+                tout[i] = _unit(np.array([ca * t[0] + sa * t[1], -sa * t[0] + ca * t[1]]))
+                if tout[i][1] < 0:
+                    tout[i] = _unit(np.array([ca * t[0] - sa * t[1], sa * t[0] + ca * t[1]]))
     out = []
     for i in range(8):
         seg = SEGS[i]
@@ -233,10 +247,15 @@ class EndCap:
         W = np.interp(z, self.Wz, self.W)
         return self.xs + (self.x_c(z) - self.xs) * self.g(np.abs(y) / W, z)
 
-    def rings(self, count=70, power=2.2):
-        """Ring rows ordered from the split loop (r=1) to the pole (r=0)."""
+    def rings(self, count=70, power=1.35):
+        """Ring rows ordered from the split loop (r=1) to the pole (r=0).
+
+        v0.3: dense near the split loop (r = 1 - t^p, p > 1).  v0.2 used
+        t^(1/p), i.e. the opposite: the first ring sat at r 0.87, so the
+        last ~100 mm of the roof (spoiler) and of the hood leading edge were
+        a single flat facet."""
         t = np.linspace(0.0, 1.0, count + 1)[1:]
-        r = 1.0 - t ** (1.0 / power)       # dense near the split loop
+        r = 1.0 - t ** power               # dense near the split loop
         r = np.concatenate([r[:-1], [0.0]])
         rows = []
         for rk in r:

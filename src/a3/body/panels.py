@@ -61,6 +61,35 @@ def _cowl_plan():
     return poly * 1e-3
 
 
+def _eye_basis(eye, target=(-3.2, 0.0, 1.0)):
+    f = np.asarray(target, float) - eye
+    f /= np.linalg.norm(f)
+    r = np.cross(f, [0.0, 0.0, 1.0])
+    r /= np.linalg.norm(r)
+    u = np.cross(r, f)
+    return f, r, u
+
+
+def _to_eye_image(P, eye):
+    f, r, u = _eye_basis(eye)
+    d = np.asarray(P, float) - eye
+    w = d @ f
+    return np.stack([(d @ r) / w, (d @ u) / w], 1)
+
+
+def _tailgate_image_poly():
+    """Closed tailgate outline (both sides) in the image plane of REAR_EYE."""
+    eye = np.asarray(op.REAR_EYE, float)
+    side = op._k7_edge()                                     # glass top corner -> bottom corner
+    low = np.asarray(op.TAILGATE_LOW, float) * 1e-3          # bottom corner -> bottom centre
+    end = np.asarray(op.SPOILER_END, float) * 1e-3           # seam end -> glass corner
+    seam = np.asarray(op.TAILGATE_SEAM, float) * 1e-3
+    left = np.vstack([seam, end, side, low])                 # centre top -> ... -> centre bottom
+    right = left[::-1] * [1, -1, 1]
+    loop = np.vstack([left, right])
+    return _to_eye_image(loop, eye)
+
+
 def classify(C, N):
     """Panel label per face from centroids C (M, 3) and normals N (M, 3)."""
     x, y, z = C[:, 0], C[:, 1], C[:, 2]
@@ -68,23 +97,21 @@ def classify(C, N):
     lab = np.full(len(C), "Shell", dtype=object)
     side = np.where(y >= 0, ".L", ".R")
 
-    # --- tailgate ------------------------------------------------------------------
-    tg = np.asarray(op.TAILGATE, float) * 1e-3
-    tz, ty = tg[:-2, 1][::-1], tg[:-2, 0][::-1]                 # side part, z ascending
-    y_tg = np.interp(z, tz, ty)
-    z_bot = np.interp(ay, [0.0, 0.45, 0.556], [0.652, 0.654, 0.659])
-    x_tg_top = np.asarray(op.TAILGATE_TOP, float)[:, 0].mean() * 1e-3
-    tailgate = (x < -2.95) & (z > z_bot - 0.002) & (ay < y_tg + 0.002) & (z < 1.33)
-    tailgate |= (x < x_tg_top) & (z > 1.25) & (ay < 0.62)
-    # the D-pillar/side faces next to the glass stay on the body
-    tailgate &= ~((N[:, 1] * np.sign(y + 1e-9) > 0.75) & (ay > 0.55))
+    # --- tailgate (v0.3: 3D outline seen from the rear eye point) -------------------
+    poly = _tailgate_image_poly()
+    eye = np.asarray(op.REAR_EYE, float)
+    uv = _to_eye_image(C, eye)
+    facing = ((C - eye) * N).sum(1) < 0
+    tailgate = (x < -2.60) & (z > 0.60) & facing & _poly_contains(poly, uv)
     lab[tailgate] = "Tailgate"
 
     # --- rear bumper ---------------------------------------------------------------
     x_rbs = _interp_xz(op.REAR_BUMPER_SPLIT, z)
-    z_rb = np.interp(ay, [0.0, 0.556, 0.60, 0.64, 0.80, 0.95], [0.652, 0.659, 0.712, 0.783,
-                                                                  0.792, 0.80])
-    rbump = (x < x_rbs) & (z < z_rb) & (x < -2.85) & ~tailgate
+    z_rb = np.interp(ay, [0.0, 0.276, 0.466, 0.507, 0.536, 0.564, 0.595, 0.622, 0.718, 0.769,
+                          0.802, 0.95],
+                     [0.640, 0.642, 0.647, 0.657, 0.686, 0.728, 0.779, 0.772, 0.773, 0.779,
+                      0.793, 0.80])
+    rbump = (x < x_rbs) & (z < z_rb) & (x < -2.80) & ~tailgate
     lab[rbump] = "Bumper_R"
 
     # --- hood and cowl -----------------------------------------------------------------
