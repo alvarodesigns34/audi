@@ -158,7 +158,6 @@ LABELS = [
     (r"^Headlight_Blade", "Lama cromada del faro"),
     (r"^Headlight_DRL_Channel", "Canal de la luz diurna LED"),
     (r"^Headlight_DRL", "Guía de luz diurna LED"),
-    (r"^Headlight_Indicator", "Intermitente LED"),
     (r"^Headlight_Projector", "Proyector bi-xenón"),
     (r"^Headlight_Reflector", "Reflector de luz larga"),
     (r"^Headlight_Bezel", "Embellecedor interior del faro"),
@@ -307,6 +306,39 @@ LABELS = [
 ]
 
 
+# v0.4: hinges of the opening panels, exported as the extra "hinge" of their
+# group node: pivot (m) and unit axis in glTF axes, opening angle in degrees
+# with the sign of a right-handed rotation about that axis (the viewer rotates
+# the group about the axis through the pivot).  Vehicle axes here; y is the
+# outboard side (+ left).  All E: positions from the shut lines
+# (openings.FRONT_DOOR_FRONT, B_GAP, HOOD_REAR, TAILGATE_SEAM), ~30 mm inboard
+# of the skin; angles typical of the MQB A3 (no measured value).
+HINGES = {
+    # group: (pivot (x, |y|, z), axis (x, y, z) for the LEFT side, angle deg for the left side)
+    "puerta_di": ((-0.500, 0.830, 0.620), (0.0, 0.0, 1.0), -62.0),
+    "puerta_ti": ((-1.600, 0.815, 0.620), (-0.063, 0.0, 0.998), -60.0),
+    "capo": ((-0.400, 0.550, 0.900), (0.0, -1.0, 0.0), 50.0),
+    "porton": ((-2.700, 0.450, 1.365), (0.0, -1.0, 0.0), -75.0),
+}
+MIRRORED = {"puerta_dd": "puerta_di", "puerta_td": "puerta_ti"}
+
+
+def hinge_for(g):
+    """glTF hinge extra of group g, or None."""
+    src = MIRRORED.get(g, g)
+    if src not in HINGES:
+        return None
+    (px, py, pz), (ax, ay, az), ang = HINGES[src]
+    right = g in MIRRORED
+    side = -1.0 if right else 1.0
+    centred = src in ("capo", "porton")         # lateral axis: pivot on the centre plane
+    pivot = (px, 0.0 if centred else side * py, pz)
+    axis = (ax, side * ay if not centred else ay, az)
+    # mirroring a rotation about a vertical-ish axis flips its sign
+    angle = -ang if right else ang
+    return {"pivot": _to_gltf(pivot), "axis": _to_gltf(axis), "angle": float(angle), "source": "E"}
+
+
 def _to_gltf(v):
     x, y, z = v
     return [float(x), float(z), float(-y)]
@@ -408,6 +440,9 @@ def build(ctx):
             e["group"] = g
             e["label"] = lab
             e["explode"] = _to_gltf(vec)
+            h = hinge_for(g)
+            if h is not None:
+                e["hinge"] = h
             empties[g] = e
         # keep an existing hierarchy when the parent belongs to the same group
         # (e.g. wheel pivot -> rim/tyre), otherwise hang it from the group

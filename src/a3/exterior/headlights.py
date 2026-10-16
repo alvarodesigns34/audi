@@ -86,29 +86,34 @@ def _unit(ctx, ref, surf, mirror):
     mesh.object_from_pydata("Headlight_Back" + sfx, verts, faces, COL, ctx.mat("lamp_housing"))
 
     # ---- white light-guide channel (DRL) ------------------------------------------
-    g0 = b1
-    g1 = _shrink(P, d, 21.0, c) - d * 0.022
-    guide = _band("Headlight_DRL_Channel" + sfx, g0, g1, COL, ctx.mat("lamp_guide_white"))
-    # the top run of the channel is covered by the bezel: keep the white band only
-    # along the lower edge and up both ends (faces whose centre is below the
-    # straight line joining the two ends' upper corners)
-    H = np.asarray(op.HEADLIGHT_3D, float) * 1e-3 * [1, s, 1]
+    # v0.4 (sline_front.jpg, zoomed): the guide runs right round the lamp - wide
+    # (~14 mm) along the lower edge and both ends, narrowing to ~5 mm along the
+    # top under the border; v0.3 painted the top run grey and kept a separate
+    # amber LED row on top, which the photos do not show (the indicator is in the
+    # light guide)
     zt = lambda y: np.interp(abs(y), [0.44, 0.60, 0.75, 0.86], [0.684, 0.700, 0.716, 0.722])
-    bi = mesh.material_index(guide, ctx.mat("lamp_bezel_grey"))
-    for f in guide.data.polygons:
-        cc = f.center
-        if cc.z > zt(cc.y) - 0.006 and 0.52 < abs(cc.y) < 0.80:
-            f.material_index = bi
+
+    def top_weight(Q):
+        w = np.clip((Q[:, 2] - (zt(Q[:, 1]) - 0.016)) / 0.012, 0.0, 1.0)
+        ends = np.clip((np.abs(Q[:, 1]) - 0.50) / 0.04, 0, 1) * np.clip((0.82 - np.abs(Q[:, 1])) / 0.04, 0, 1)
+        w = w * ends
+        return (w * w * (3 - 2 * w))[:, None]
+
+    def inset(k_wide, k_top, depth):
+        a, b = _shrink(P, d, k_wide, c), _shrink(P, d, k_top, c)
+        w = top_weight(P)
+        return a * (1 - w) + b * w - d * depth
+
+    g0 = b1
+    g1 = inset(21.0, 12.0, 0.022)
+    _band("Headlight_DRL_Channel" + sfx, g0, g1, COL, ctx.mat("lamp_guide_white"))
     # LED strip inside the channel (emissive in the viewer's lights mode)
-    mid = _shrink(P, d, 14.0, c) - d * 0.019
-    keep = np.array([not (p[2] > zt(p[1]) - 0.004 and 0.52 < abs(p[1]) < 0.80) for p in mid])
-    run = _longest(mid, keep)
-    if len(run) > 10:
-        mesh.tube_along("Headlight_DRL_LED" + sfx, resample(run, 120), 0.0018, sides=8,
-                        collection=COL, material=ctx.mat("led_white"))
+    mid = inset(14.0, 9.5, 0.019)
+    mesh.tube_along("Headlight_DRL_LED" + sfx, np.vstack([resample(mid, 160), resample(mid, 160)[:1]]),
+                    0.0016, sides=8, collection=COL, material=ctx.mat("led_white"))
     # thin chrome rim inside the channel
     r0 = g1
-    r1 = _shrink(P, d, 24.0, c) - d * 0.026
+    r1 = inset(24.0, 14.5, 0.026)
     _band("Headlight_ChromeRim" + sfx, r0, r1, COL, ctx.mat("chrome"))
     # recessed dark-grey bezel filling the inside
     in_loop = r1
@@ -155,28 +160,8 @@ def _unit(ctx, ref, surf, mirror):
                          np.array([[0.018, 0.0], [0.016, -0.006], [0.008, -0.02], [0.0, -0.024]]),
                          32, axis="X", collection=COL, material=ctx.mat("reflector"))
         _orient(r, q, d)
-    # amber turn signal LED row behind the chrome blade
-    am = np.array([anchor(x, y, z, 0.038) for x, y, z in
-                   ((0.765, 0.52, 0.688), (0.725, 0.60, 0.694), (0.680, 0.67, 0.700))])
-    mesh.tube_along("Headlight_Indicator" + sfx, resample(catmull_rom(am, 8), 30), 0.0020,
-                    sides=8, collection=COL, material=ctx.mat("led_amber"))
-
-
-def _longest(loop, mask):
-    n = len(loop)
-    if mask.all():
-        return loop
-    start = int(np.argmin(mask))
-    best, cur = [], []
-    for k in range(n):
-        i = (start + k) % n
-        if mask[i]:
-            cur.append(i)
-        else:
-            best = cur if len(cur) > len(best) else best
-            cur = []
-    best = cur if len(cur) > len(best) else best
-    return loop[best]
+    # no separate amber LED row: on the xenon plus the indicator lights the
+    # light guide itself (amber), v0.3 had a visible amber tube on top
 
 
 def _orient(ob, centre, d):

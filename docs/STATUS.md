@@ -1,9 +1,54 @@
 # Estado del gemelo digital
 
-Última actualización: 2026-10-11 (**v0.3**).
+Última actualización: 2026-10-16 (**v0.4**).
 Publicado: `docs/models/a3_sportback_8v.glb` (calidad completa, sin compresión ni
 simplificación, con texturas y metadatos de despiece) y `docs/models/a3_sportback_8v.usdz`
 (iPhone/iPad). Visor: `docs/index.html`.
+
+## Qué cambió en v0.4
+
+Trabajo hecho con Blender 5.2.2 de escritorio en Windows (`tools/blender.sh`, render con OptiX) y
+revisión en una escena de Blender abierta por MCP. Revisión de partida en `docs/REVISION_FORMA.md`.
+
+**Zaga (era el defecto más visible: chapa rasgada, triángulos negros y alerón ondulado)**
+* **Cierre trasero por filas horizontales** (`surface.EndCap`, `REAR_CAP mesh="rows"`): los anillos
+  ya no se contraen hacia un punto sino hacia un segmento vertical del plano central (z 0,42–1,10);
+  la malla sigue las aristas horizontales del portón (banda, línea de pilotos, escalón bajo la
+  luneta). Los anillos de v0.3 las cruzaban en diagonal y dejaban un diente de sierra.
+* **Espesor de chapa sin «even offset»** (`shell.py`): en las caras estrechas donde convergen las
+  filas el espesor uniforme lanzaba la cara interior a metros de distancia.
+* **Carta de la luneta desde dentro del habitáculo** (`openings.CHART_O`): los rayos salían de un eje
+  longitudinal en planos x = cte y rozaban la cara trasera; el borde inferior de la luneta y las
+  juntas salían ondulados ~10 mm. Ahora el borde inferior varía < 3 mm.
+* `K7_LIFT` con arranque suave: ninguna sección sube por encima del eje del techo (había un plato
+  de 3,5 mm en lo alto del portón que el alerón copiaba como una onda de ~20 mm).
+* Alerón apoyado en un recorrido suavizado que nunca baja del borde de salida medido; sus caras
+  que quedan bajo la piel van en negro.
+* Guarnecidos del pilar D y laterales del maletero mantenidos dentro de la piel
+  (`interior/_geo.keep_inside`): atravesaban el portón (las «cuñas negras» de las esquinas).
+* Luneta suavizada con el borde fijo. Pilotos: reflector gris metalizado tras la lente y capa
+  interior más clara (v0.3 los dejaba casi negros).
+* `guarded_cut`: modos de rescate de la booleana EXACT (tolerante a huecos y autointersección).
+  Los 49 cortes salen bien.
+
+**Retrovisores** (pendiente medido en v0.3): cabeza z 0,935–1,056 con división pintura/negro a
+z 0,967, en flecha con el plano del cristal de x −0,80 a −0,88, intermitente en la división y
+brazo atornillado a la puerta bajo la ventanilla (x −0,70…−0,78, z 0,862). La insignia S line
+ya estaba en su posición medida.
+
+**Faros**: la guía de luz blanca da toda la vuelta (ancha abajo, ~5 mm arriba), como en
+`sline_front`; se quitó el tubo ámbar superior, que no existe (el intermitente es la propia guía).
+
+**Interior**: cuero de volante propio (napa fina, poco relieve) y costura gris oscura (E);
+botoneras 5 mm más bajas; menos brillo «sheen» en el cuero y el cielo negros.
+
+**Bisagras reales en el GLB**: los nodos `G_puerta_*`, `G_capo` y `G_porton` llevan el extra
+`hinge` (`pivot`, `axis` en ejes glTF, `angle` en grados, `source` = E). Pivotes en las juntas
+(`FRONT_DOOR_FRONT`, `B_GAP`, `HOOD_REAR`, `TAILGATE_SEAM`), ~30 mm dentro de la piel; ángulos E.
+El Audi Lab de `spacex` los usa en lugar de estimarlos por la caja envolvente.
+
+**Herramientas**: `tools/blender.sh` + `tools/blender_run.py` (cualquier herramienta con Blender
+de escritorio), `A3_DEVICE` para la GPU, rutas de render absolutas.
 
 ## Qué cambió en v0.3
 
@@ -76,35 +121,30 @@ interior y aislante del capó con bisagras, rejilla de la caja de aguas, mazos d
 | Mecánica | Disposición MQB típica | E (orientativa) |
 | Interior | Fotos 8V + envolvente medida | E |
 
-## Estado exacto al cerrar la sesión (v0.3)
+## Estado exacto al cerrar la sesión (v0.4)
 
-* `docs/models/*.glb|usdz` y `docs/renders/` se generaron con `tools/publish.sh` ANTES de los
-  últimos commits: el limpialuneta (ahora colocado en la carta radial; antes dejaba un triángulo
-  negro sobre el pilar D en las vistas 3/4 traseras) y la ampliación del labio del alerón **no
-  están en el GLB/USDZ publicados**. Hay que ejecutar `tools/publish.sh` otra vez.
-* **Sin verificar**: la luneta/alerón vistos en 3/4 trasera siguen con artefactos (la superficie
-  del labio del alerón sobre las esquinas de la luneta y el hueco de la luna se ven irregulares
-  en `rear34`); el render comparado con `sline_rear` ya coincide bien en pilotos, portón y
-  paragolpes.
-* **Pendiente de implementar (medido, sin código)** — retrovisor (`exterior/mirrors.py`, medido en
-  `side.jpg`): cabeza de z 0,935 a 1,056 (centro 0,995, alto 121 mm), división pintura/negro a
-  z 0,967; cabeza en flecha: x −0,657 (frente de la raíz) a −0,883 (cristal en la punta), plano de
-  cristal de x −0,80 (raíz) a −0,88 (punta); brazo atornillado a la puerta bajo la ventanilla
-  (x −0,70…−0,78, z ≈ 0,865). Insignia S line en x −0,377, z 0,762 (v0.2: 77 mm adelantada y
-  33 mm alta). En v0.2 la cabeza está ~25 mm demasiado alta y el brazo sale de la base de la
-  ventanilla en vez de la puerta.
-* Pendientes de la lista original: interior (salpicadero, asientos S line con costuras y
-  laterales — fotos `cockpit.jpg`, `interior.jpg`), llantas/frenos, suspensión y escape con más
-  detalle, techo (barras longitudinales: en `yellow.jpg` se ven; en el coche del propietario no),
-  retocar el lateral bajo la línea tornado y las costuras de las puertas.
+* `docs/models/*.glb|usdz` y `docs/renders/` regenerados con `tools/publish.sh` con todo lo de v0.4.
+* **Sin verificar / pendiente**:
+  * Luneta en vistas 3/4 traseras: en el estudio refleja la caja de luz como una mancha blanca
+    de borde duro en su esquina superior (no es geometría: desaparece al ocultar la luna; en las
+    fotos el cristal refleja el cielo). Las lunas no están oscurecidas (pregunta abierta).
+  * Capó: reflejos ondulados cerca de los faros; los nervios del capó cruzan en diagonal la malla de
+    12 mm. Probado un perfil más suave sin diferencia clara en arcilla; sin cambiar.
+  * Manetas: el hueco embutido se ve demasiado grande y difuso.
+  * Línea tornado poco marcada respecto a la foto `side`.
+  * Interior: salpicadero (forma del «ala»), asientos S line y paneles de puerta siguen
+    aproximados; botoneras del volante y radio inferior simplificados.
+  * Mecánica y bajos sin cambios (E).
+* El rectángulo blanco que se ve tras el parabrisas en `cockpit` es la caja de luz del estudio,
+  no una pieza del coche.
 
 ## Errores y carencias conocidos (por prioridad)
 
 1. **Interior**: salpicadero y asientos siguen siendo aproximados (forma del "ala" del
    salpicadero, laterales de los asientos S line, paneles de puerta).
 2. Extremos del alerón sobre las esquinas superiores de la luneta: forma aproximada (E).
-3. Retrovisores: forma general correcta; la punta podría estar ~20 mm desplazada (dato de anchura
-   con retrovisores S, sin foto frontal calibrada fiable).
+3. Retrovisores: cabeza y brazo medidos en `side.jpg`; la punta (anchura con retrovisores, S) y la
+   forma en planta siguen E.
 4. Mecánica estimada (no hay fotos de bajos ni del vano del 8V 2.0 TDI en las referencias).
 5. Foto frontal del coche rojo (`front.jpg`): la calibración no es fiable (suelo brillante, llantas
    parcialmente ocultas); no se usa.

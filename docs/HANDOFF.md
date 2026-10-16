@@ -1,6 +1,6 @@
 # Traspaso para una sesión nueva
 
-Estado: **v0.3** (2026-10-11). Qué hay, cómo se trabaja y qué falta: `docs/STATUS.md`.
+Estado: **v0.4** (2026-10-16). Qué hay, cómo se trabaja y qué falta: `docs/STATUS.md`.
 Convenciones de código: `docs/CONVENTIONS.md`. Uso rápido: `README.md`.
 
 ## Mapa del repositorio
@@ -29,6 +29,9 @@ Convenciones de código: `docs/CONVENTIONS.md`. Uso rápido: `README.md`.
 ## Herramientas
 
 - `tools/setup_env.sh` → Blender 5.2 como módulo en `/opt/bpyenv` (usar `/opt/bpyenv/bin/python`).
+- `tools/blender.sh <script> [args]` → la misma herramienta con un Blender de escritorio en segundo
+  plano (Windows/Git Bash; `--setup` instala scipy y pillow en `out/pydeps`; `A3_DEVICE=OPTIX`
+  renderiza con la GPU). `PY=tools/blender.sh tools/publish.sh` publica igual que en Linux.
 - `tools/fetch_references.sh` → fotos de Wikimedia Commons en `reference/photos/` (no versionadas).
 - `tools/run.py` → construir y renderizar (`--views`, `--parts`, `--clay`, `--explode`, `--hide`, `--glb`).
 - `tools/publish.sh` → regenera GLB, USDZ y `docs/renders/` (~20 min en CPU).
@@ -68,6 +71,20 @@ Convenciones de código: `docs/CONVENTIONS.md`. Uso rápido: `README.md`.
   (r = 1 − t^p, p > 1); al revés el final del techo y del capó era una sola faceta.
 - Wikimedia limita peticiones (429): `fetch_references.sh` reintenta; la API de categorías también
   limita — usar la página web de la categoría `Category:Audi_A3_8V` para ver nombres de archivo.
+- v0.4: las aristas horizontales de la zaga necesitan filas horizontales en la malla: cualquier
+  malla que las cruce en diagonal (anillos, aunque sean 400) deja diente de sierra. Las filas no
+  pueden llegar hasta el plano central en las zonas casi horizontales (suelo, techo): se pliegan;
+  por eso convergen a los extremos de un segmento (`REAR_CAP rows_z`), y esos polos tienen que
+  quedar fuera de cualquier cortador (el del difusor fallaba con el polo dentro).
+- v0.4: `solidify` con `use_even_offset` revienta en caras-astilla (vértices a metros). La piel
+  usa espesor simple.
+- v0.4: proyectar contornos con rayos casi rasantes los ondula (carta en planos x = cte sobre la
+  cara trasera). Los rayos deben llegar casi normales a la superficie: la luneta usa rayos desde
+  un punto dentro del habitáculo (`openings.CHART_O`).
+- v0.4: en la sesión de Blender abierta (MCP) las booleanas EXACT no reproducen lo que hacen sin
+  interfaz; los cortes se validan siempre con `tools/blender.sh`.
+- v0.4: piezas del interior junto a la piel (pilares, maletero) pueden asomar por fuera en las
+  esquinas que envuelven: `interior/_geo.keep_inside`.
 - Fotos de coches distintos: S line blanco WI-RQ 1209 (`sline_front`, `sline_rear`, referencia),
   amarillo (`yellow`, `yellow_rear`, +24 mm de altura), rojo de salón (`side`, `rearq`, `rearsq`).
 

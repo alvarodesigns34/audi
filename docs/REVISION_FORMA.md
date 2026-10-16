@@ -87,3 +87,14 @@ lateral) coincide bien con las fotos calibradas. Los errores están en la piel y
 2. Pendientes medidos: retrovisores e insignia S line.
 3. Capó, faro, tornado y manetas.
 4. Interior.
+
+## Estado tras v0.4
+
+* Zaga (1 y 2): corregidos la chapa rasgada, los triángulos negros, el alerón ondulado y el parche
+  del piloto (causas en `docs/STATUS.md`). Pilotos más claros con reflector gris; su gráfica
+  interior sigue simplificada. La faldilla negra tras la rueda trasera y el difusor siguen igual.
+* Frontal (3): faro con la guía de luz completa y sin la franja ámbar. Capó y nervio de la toma
+  lateral sin cambios. La forma blanca tras el parabrisas es la caja de luz del estudio.
+* Lateral (4): retrovisores corregidos; la insignia S line ya estaba bien. Tornado y manetas
+  pendientes.
+* Interior (5): volante con cuero propio y botoneras más bajas; el resto pendiente.

@@ -16,6 +16,13 @@ rueda, invernadero trasero más estrecho), luneta envolvente real, pilotos y jun
 3D, faros y tomas S line nuevos, booleanas verificadas, vano motor detallado y muchas piezas
 nuevas. Detalle en [`docs/STATUS.md`](docs/STATUS.md).
 
+**v0.4**: zaga rehecha (malla del cierre trasero por filas horizontales, luneta sin ondas ni
+cuñas negras, alerón limpio, pilotos con reflectores), retrovisores con sus cotas medidas, faros
+con la guía de luz completa, cuero del volante y **bisagras reales** de puertas, capó y portón en
+el GLB (extra `hinge`, que usa el Audi Lab de `spacex`). Se puede trabajar con Blender de
+escritorio en Windows (`tools/blender.sh`). Revisión de forma de partida en
+[`docs/REVISION_FORMA.md`](docs/REVISION_FORMA.md).
+
 ![Frontal 3/4](docs/renders/front34.png)
 
 **Visor web (GitHub Pages):** `https://alvarodesigns34.github.io/audi/` — se publica desde la
@@ -103,7 +110,7 @@ eje delantero. Volante a la izquierda. Ver `docs/CONVENTIONS.md`.
 
 ## Estado, limitaciones y traspaso
 
-* `docs/STATUS.md`: qué hay en v0.2, precisión por zona, errores conocidos, decisiones y
+* `docs/STATUS.md`: qué hay en v0.4, precisión por zona, errores conocidos, decisiones y
   preguntas abiertas al propietario.
 * `docs/HANDOFF.md`: mapa del repositorio, herramientas, lecciones aprendidas y el prompt
   para continuar en una sesión nueva.
