@@ -209,6 +209,8 @@ def disc_maps(n=512, seed=111):
 SURFACES = {
     # key: (generator, tile size m, normal strength in the material)
     "leather": (leather_maps, 0.060, 0.9),
+    # v0.4: steering-wheel nappa - same pebble generator, finer and much flatter
+    "leather_fine": (leather_maps, 0.035, 0.35),
     "leather_perf": (leather_perf_maps, 0.034, 1.0),
     "grain_plastic": (grain_plastic_maps, 0.080, 0.8),
     "soft_touch": (soft_touch_maps, 0.060, 0.6),

@@ -44,7 +44,7 @@ def _rim(ctx, L):
         pts[i, :, 1] = r * math.sin(a)
         pts[i, :, 2] = pz * (1 + 0.5 * (sw - 1))
     ob = mesh.grid_object("Steering_Rim", pts, closed_u=True, closed_v=True,
-                          collection=COL, material=ctx.mat("leather_black"), smooth=False)
+                          collection=COL, material=ctx.mat("leather_wheel"), smooth=False)
     mesh.recalc_normals(ob)
     mesh.shade_smooth(ob, 80)
     return ob, Rc
@@ -123,7 +123,7 @@ def build(ctx):
     L = layout.get(ctx)
     axis = L.sw_axis()
     W = g.frame(L.sw_centre, axis, (0, -1, 0))
-    leather = ctx.mat("leather_black")
+    leather = ctx.mat("leather_wheel")
     objs = []
 
     rim, Rc = _rim(ctx, L)
@@ -135,7 +135,11 @@ def build(ctx):
         sp = _spoke(f"Steering_Spoke_{nm}", a0, 0.055, Rc - 0.004, 0.050, 0.036, 0.019,
                     hub_z + 0.010, -0.004, leather)
         objs.append(sp)
+        n0 = len(objs)
         _mf_pad(ctx, s, objs)
+        # v0.4: pads sit 3-5 mm proud of the spoke (cockpit.jpg), not ~10 mm
+        for o in objs[n0:]:
+            g.set_verts(o, g.verts_of(o) + np.array([0, 0, -0.005]))
     # lower spoke (v0.3, cockpit.jpg): ONE wide leather spoke from the hub to
     # the rim at 6 o'clock, ~70 mm wide at the hub and ~125 mm where it meets
     # the rim, with a small brushed-aluminium trapezoid inlay near the rim
@@ -194,7 +198,7 @@ def _rim_stitches(ctx, L, rim, W, Rc):
     """Cross ('baseball') stitching along the rim's inner seam on the driver
     side, interrupted where the spokes join."""
     surf = g.Surface(rim)
-    b = g.Batch("Steering_Rim_Stitching", COL, ctx.mat("stitch_grey"))
+    b = g.Batch("Steering_Rim_Stitching", COL, ctx.mat("stitch_dark"))
     t_seam = math.radians(118)           # section angle of the seam (inner, driver side)
     gaps = [0.0, math.pi, math.radians(-70), math.radians(-110)]
     segs = []

@@ -183,7 +183,8 @@ def get(key: str, paint="ibis_white"):
         "glass_ceramic_frit": lambda: principled("Glass_Frit_Black", "#050505", roughness=0.15),
         "lens_clear": lambda: principled("Lamp_Lens_Clear", "#F4F7F8", roughness=0.0, transmission=1.0, ior=1.49, alpha=0.12),
         "lens_red": lambda: principled("Lamp_Lens_Red", "#A0101A", roughness=0.02, transmission=1.0, ior=1.49, alpha=0.62),
-        "lens_red_dark": lambda: principled("Lamp_Lens_Red_Dark", "#4A0408", roughness=0.08, transmission=0.8, ior=1.49, alpha=0.55),
+        "lens_red_dark": lambda: principled("Lamp_Lens_Red_Dark", "#6E0A12", roughness=0.08, transmission=0.8, ior=1.49, alpha=0.42),
+        "lamp_reflector_grey": lambda: principled("Lamp_Reflector_Grey", "#6A6A6E", metallic=0.8, roughness=0.3),
         "lens_amber": lambda: principled("Lamp_Lens_Amber", "#FF8A00", roughness=0.05, transmission=0.7, ior=1.49, alpha=0.6),
         "reflector": lambda: principled("Lamp_Reflector", "#D8D8D8", metallic=1.0, roughness=0.08),
         "lamp_housing": lambda: principled("Lamp_Housing_Black", "#141414", roughness=0.55),
@@ -226,7 +227,11 @@ def get(key: str, paint="ibis_white"):
         "plate_blue": lambda: principled("Plate_EU_Blue", "#003399", roughness=0.4),
         "plate_text": lambda: principled("Plate_Text", "#111111", roughness=0.4),
         # ---- interior ----
-        "leather_black": lambda: principled("Leather_Black", "#121212", roughness=0.55, sheen=0.2, tex="leather"),
+        # v0.4: less sheen - with 0.2 the black leather read mid-grey under the cabin fills
+        "leather_black": lambda: principled("Leather_Black", "#121212", roughness=0.55, sheen=0.08, tex="leather"),
+        "leather_wheel": lambda: principled("Leather_Black_Wheel", "#0E0E0E", roughness=0.42, sheen=0.04,
+                                            tex="leather_fine"),
+        "stitch_dark": lambda: principled("Stitching_Dark_Grey", "#3A3A3A", roughness=0.8),  # E colour
         "leather_perforated": lambda: principled("Leather_Black_Perforated", "#151515", roughness=0.6, tex="leather_perf"),
         "alcantara": lambda: principled("Alcantara_Black", "#141414", roughness=0.95, sheen=0.6, tex="fabric"),
         "stitch_grey": lambda: principled("Stitching_Rock_Grey", "#7A7A7A", roughness=0.8),

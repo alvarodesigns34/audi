@@ -7,6 +7,7 @@ ceramic frit band is added on the inner face of the bonded screens.
 """
 from __future__ import annotations
 
+import bmesh
 import numpy as np
 
 from ..core import mesh, scene
@@ -75,6 +76,17 @@ def build(ctx):
     tmp = scene.temp_collection("_tmp_patch")
     cut = op.rear_glass_cutter("RW_cut", surf0, tmp)
     rw = st.patch_with_cutter(ref, cut, "Glass_RearWindow", COL, glass)
+    # v0.4: smooth the pane with its edge pinned: the patch copied the D-pillar
+    # crease (K7 and its lifted tangent) as a fold running in from the top
+    # corners, which caught the light as a white blob (sline_rear, rear34)
+    bm = bmesh.new()
+    bm.from_mesh(rw.data)
+    inner = [v for v in bm.verts if not v.is_boundary and all(not e.is_boundary for e in v.link_edges)]
+    for _ in range(30):
+        bmesh.ops.smooth_vert(bm, verts=inner, factor=0.5, use_axis_x=True, use_axis_y=True,
+                              use_axis_z=True)
+    bm.to_mesh(rw.data)
+    bm.free()
     st.offset(rw, -0.002)
     mesh.solidify(rw, 0.004, offset=-1.0)
     mesh.shade_smooth(rw, 50)

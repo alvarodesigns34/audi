@@ -71,7 +71,9 @@ def _taillight(ctx, ref, surf, mirror):
     cut = op.taillight_cutter("TL_cut" + sfx, surf, tmp, mirror=mirror)
     lens = st.patch_with_cutter(ref, cut, "Taillight_Lens" + sfx, LCOL, ctx.mat("lens_red"))
     # inner layers: smoked red inner lens and the black housing behind it
-    for nm, mat, d in (("Inner", "lens_red_dark", -0.020), ("Housing", "lamp_housing", -0.055)):
+    # v0.4: the housing seen through the lenses is the grey metallised
+    # reflector of the real lamp (sline_rear, unlit), not black plastic
+    for nm, mat, d in (("Inner", "lens_red_dark", -0.020), ("Housing", "lamp_reflector_grey", -0.055)):
         c = lens.copy()
         c.data = lens.data.copy()
         scene.link(c, LCOL)
@@ -316,6 +318,13 @@ def _spoiler(ctx, ref, surf):
             # profile segments 3.. (trailing edge -> under the lip -> inside) are black
             if j >= 3 or (j == 0 and jm == nv - 1):
                 p.material_index = bi
+    # v0.4: faces of the lip that sink under the skin (its seat runs over the
+    # top of the glass) are black: painted, they showed white through the glass
+    for p in sp.data.polygons:
+        c = Vector(p.center)
+        loc, nrm, _, _ = surf.bvh.find_nearest(c)
+        if loc is not None and (c - loc).dot(nrm) < -0.001:
+            p.material_index = bi
     mesh.shade_smooth(sp, 35)
     # third brake light: LED strip under the centre of the lip (|y| < 0.16)
     tes = np.array(tes)
