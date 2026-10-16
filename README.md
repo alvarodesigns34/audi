@@ -45,6 +45,18 @@ $PY tools/compare.py sline_rear,yellow_rear,rearsq,sline_front,yellow
 cd docs && python3 -m http.server 8000   # abrir http://localhost:8000
 ```
 
+**Con Blender de escritorio (Windows / Git Bash)** — sin el venv de `bpy`, las mismas herramientas
+corren con `blender.exe` en segundo plano a través de `tools/blender.sh`:
+
+```bash
+tools/blender.sh --setup                             # una vez: scipy + pillow en out/pydeps
+A3_DEVICE=OPTIX tools/blender.sh tools/run.py --views front34 --out out/renders
+A3_DEVICE=OPTIX tools/blender.sh tools/compare.py sline_rear,yellow_rear
+```
+
+`A3_DEVICE` (OPTIX, CUDA…) renderiza con la GPU; sin ella se usa la CPU, como en Linux.
+`BLENDER` cambia la ruta del ejecutable.
+
 `--parts body,glass,...` construye solo un subconjunto; `--clay` pinta la carrocería en gris
 para revisar superficies; `tools/skin_preview.py` renderiza solo la piel en arcilla oscura. La carrocería (booleanas exactas, ~3 min) se cachea en
 `out/cache/` y se reutiliza mientras no cambien sus fuentes.

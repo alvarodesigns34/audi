@@ -116,6 +116,26 @@ VIEWS = {
 }
 
 
+def set_device(scn):
+    """Cycles device: CPU by default; ``A3_DEVICE=OPTIX`` (or CUDA, HIP...) renders on the
+    GPU of a desktop Blender (tools/blender.sh)."""
+    dev = os.environ.get("A3_DEVICE", "CPU").upper()
+    scn.cycles.device = "CPU"
+    if dev == "CPU":
+        return
+    try:
+        cp = bpy.context.preferences.addons["cycles"].preferences
+        cp.compute_device_type = dev
+        cp.refresh_devices()
+        gpus = [d for d in cp.devices if d.type == dev]
+        for d in cp.devices:
+            d.use = d.type == dev
+        if gpus:
+            scn.cycles.device = "GPU"
+    except (KeyError, TypeError) as e:
+        print("[render] GPU unavailable:", e)
+
+
 def render(path, view="front34", res=(1600, 900), samples=64, engine="CYCLES",
            transparent=False, denoise=True, extra=None):
     scn = bpy.context.scene
@@ -126,7 +146,7 @@ def render(path, view="front34", res=(1600, 900), samples=64, engine="CYCLES",
     scn.camera = cam
     scn.render.engine = engine
     scn.cycles.samples = samples
-    scn.cycles.device = "CPU"
+    set_device(scn)
     scn.cycles.use_denoising = denoise
     try:
         scn.cycles.denoiser = "OPENIMAGEDENOISE"
@@ -141,7 +161,7 @@ def render(path, view="front34", res=(1600, 900), samples=64, engine="CYCLES",
     scn.view_settings.look = "AgX - Medium High Contrast"
     scn.render.image_settings.file_format = "PNG"
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
-    scn.render.filepath = path
+    scn.render.filepath = os.path.abspath(path)
     bpy.ops.render.render(write_still=True)
     bpy.data.objects.remove(cam, do_unlink=True)
     for ob in fills:

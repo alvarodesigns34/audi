@@ -85,7 +85,7 @@ def main():
     render.studio(floor=False)
     scn = bpy.context.scene
     scn.render.engine = "CYCLES"
-    scn.cycles.device = "CPU"
+    render.set_device(scn)
     scn.cycles.samples = a.samples
     scn.cycles.use_denoising = True
     scn.render.film_transparent = True
