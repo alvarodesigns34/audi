@@ -64,6 +64,9 @@ FRONT_CAP = dict(
 REAR_CAP = dict(
     centre_z=600,
     rings=150,
+    mesh="rows",           # horizontal rows (see surface.EndCap.rings) ...
+    rows_z=(420, 1100),    # ... between these heights (mm): tail creases 0.55-1.03;
+                           # the lower end stays above the diffuser cutter (z <= 0.394)
     plan_m=[(200, 3.0), (400, 4.2), (800, 4.2), (1000, 3.0), (1350, 2.4)],
     plan_n=[(200, 1.5), (700, 1.4), (1350, 1.6)],
 )
@@ -203,7 +206,11 @@ K7_CREASE = [(780, 0), (-330, 0), (-430, 1), (-3330, 1), (-3352, 1)]
 # lift of the section tangent leaving K7 towards the roof (deg): 0 along the
 # cabin (roof side rail), rising behind the C-pillar where the roof spoiler sits
 # above the wrapped rear glass (E, fitted to the spoiler ends, see v0.3 notes)
-K7_LIFT = [(869, 0), (-2760, 0), (-2860, 55), (-2980, 65), (-3441, 65)]
+# v0.4: softer onset - 55 deg at x -2.86 pushed the roof-edge segment up to
+# 3.5 mm above the roof centre line (a dish in the tailgate top that the
+# spoiler lip copied as a ~20 mm wave); with this table no section rises above
+# the centre line (checked x -2.78 .. -3.05)
+K7_LIFT = [(869, 0), (-2760, 0), (-2860, 30), (-2980, 50), (-3441, 55)]
 
 # Segment bulge (fraction of chord, + = convex outward) ------------------------------
 BULGE = {

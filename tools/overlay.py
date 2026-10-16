@@ -80,7 +80,7 @@ def main():
     scn.render.resolution_percentage = 100
     scn.view_settings.view_transform = "Standard"
     tmp = a.out + ".render.png"
-    scn.render.filepath = tmp
+    scn.render.filepath = os.path.abspath(tmp)
     bpy.ops.render.render(write_still=True)
     photo = Image.open(a.photo).convert("RGBA").resize((W, H))
     ren = Image.open(tmp).convert("RGBA")

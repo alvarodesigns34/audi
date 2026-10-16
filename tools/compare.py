@@ -100,7 +100,7 @@ def main():
         W, H = cfg["size"]
         cam = set_camera(cfg, a.scale)
         p = os.path.join(a.out, f"{name}_render.png")
-        scn.render.filepath = p
+        scn.render.filepath = os.path.abspath(p)
         bpy.ops.render.render(write_still=True)
         bpy.data.objects.remove(cam, do_unlink=True)
         w, h = int(W * a.scale), int(H * a.scale)

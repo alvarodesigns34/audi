@@ -179,7 +179,12 @@ def guarded_cut(skin, cutter, margin=0.006, bvh=None):
                 ("EXACT", ((-0.00021, 0.00017, -0.00007), (0, 0, 0), 1.0)),
                 ("EXACT", ((0, 0, 0), (0, 0.37, 0), 1.0)),
                 ("EXACT", ((0, 0, 0), (0.29, 0, 0.23), 1.0)),
-                ("EXACT", ((0.0004, 0.0003, -0.0002), (0.11, 0.53, -0.17), 1.0007))]
+                ("EXACT", ((0.0004, 0.0003, -0.0002), (0.11, 0.53, -0.17), 1.0007)),
+                # v0.4: last resorts for shells with sliver faces (the rear-cap
+                # rows converge to the ends of a centre segment): hole-tolerant
+                # and self-intersection modes of the EXACT solver
+                ("EXACT_HOLES", ((0.00013, -0.00009, 0.00011), (0, 0, 0), 1.0)),
+                ("EXACT_SELF", ((-0.00021, 0.00017, -0.00007), (0, 0, 0), 1.0))]
     backup = skin.data.copy()
     for k, (solver, jitter) in enumerate(attempts):
         if jitter is not None:
@@ -190,7 +195,8 @@ def guarded_cut(skin, cutter, margin=0.006, bvh=None):
                                    @ Euler(tuple(np.radians(r))).to_matrix().to_4x4()
                                    @ Matrix.Scale(sc, 4) @ Matrix.Translation(-c))
         last = k == len(attempts) - 1
-        mesh.boolean(skin, cutter, solver=solver, transfer_materials=True, delete_cutter=False)
+        mesh.boolean(skin, cutter, solver="EXACT", transfer_materials=True, delete_cutter=False,
+                     hole_tolerant=solver == "EXACT_HOLES", self_intersect=solver == "EXACT_SELF")
         after = _outside_count(skin, lo, hi)
         stray = _stray_walls(skin, bvh) if bvh is not None else 0
         from mathutils.bvhtree import BVHTree
@@ -270,7 +276,11 @@ def build(ctx):
     # the gaps instead of a white inner surface)
     mesh.assign_material(skin, dark, slot_only=True)
     mesh.assign_material(skin, ctx.mat("body_inner"), slot_only=True)
-    mesh.solidify(skin, SHELL_THICKNESS, offset=-1.0, material_offset=2)
+    # v0.4: plain (not "even") offset - even thickness divides by the cosine
+    # between faces and threw the inner sheet metres away at the sliver
+    # faces where the rear-cap rows converge (86 vertices); at the real
+    # creases (<= 30 deg) the sheet is at most 0.3 mm thinner
+    mesh.solidify(skin, SHELL_THICKNESS, offset=-1.0, even=False, material_offset=2)
 
     cut_col = scene.temp_collection("_cutters_body")
     # v0.3: shut-line gaps first, large openings last.  A gap cutter whose end

@@ -260,13 +260,30 @@ def _spoiler(ctx, ref, surf):
     # corners are body (they would otherwise hang down the D-pillars)
     full = full[np.abs(full[:, 1]) < 0.575]
     gtop = np.asarray(op.REAR_GLASS_TOP, float) * 1e-3
-    secs, tes = [], []
+    te_abs = np.asarray(op.SPOILER_TE, float)[:, 1:] * 1e-3      # (|y|, z) of the trailing edge
+    hits = []
     for k, (x, y) in enumerate(full):
         hit = surf.bvh.ray_cast(Vector((x, y, 3.0)), Vector((0, 0, -1)), 4.0)
-        if hit[0] is None:
-            continue
-        P = np.array(hit[0][:])
-        n = np.array(hit[1][:])
+        if hit[0] is not None:
+            p = np.array(hit[0][:])
+            # never below the measured trailing edge: over the glass the ray
+            # lands on the (lower) glass and the lip dipped into it
+            p[2] = max(p[2], float(np.interp(abs(y), te_abs[:, 0], te_abs[:, 1])))
+            hits.append((k, p, np.array(hit[1][:])))
+    # v0.4: the lip follows a smoothed seat (gaussian over ~60 mm): the raw hits
+    # copied every ripple of the roof end into the trailing edge
+    ks = np.array([h[0] for h in hits])
+    PP = np.array([h[1] for h in hits])
+    NN = np.array([h[2] for h in hits])
+    w = np.exp(-0.5 * (np.arange(-12, 13) / 5.0) ** 2)
+    for A in (PP, NN):
+        pad = np.pad(A, ((12, 12), (0, 0)), mode="edge")
+        for c in range(3):
+            A[:, c] = np.convolve(pad[:, c], w / w.sum(), mode="valid")
+    NN /= np.linalg.norm(NN, axis=1)[:, None]
+    secs, tes = [], []
+    for k, P, n in zip(ks, PP, NN):
+        x, y = full[k]
         # outward horizontal direction, normal to the trailing edge in plan
         j0, j1 = max(k - 1, 0), min(k + 1, len(full) - 1)
         t = np.array([full[j1, 0] - full[j0, 0], full[j1, 1] - full[j0, 1], 0.0])
@@ -322,7 +339,7 @@ def _wiper_antenna(ctx, surf):
     zb = np.interp(np.abs(ys), B[:, 1], B[:, 2]) + 0.035
     P, N = op.radial_cast(surf, op.to_xth(np.stack([xb, ys, zb], 1)) * [1, 1])
     if len(P):
-        out = ((P - [0, 0, op.RADIAL_Z]) * N)[:, 1:].sum(1) < 0
+        out = ((P - np.asarray(op.CHART_O)) * N).sum(1) < 0
         N[out] *= -1
     if len(P) > 5:
         arm = P + N * 0.016

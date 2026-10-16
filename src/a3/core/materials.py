@@ -234,7 +234,7 @@ def get(key: str, paint="ibis_white"):
         "hard_plastic": lambda: principled("Interior_Hard_Plastic", "#141414", roughness=0.6, tex="soft_touch"),
         "piano_black": lambda: principled("Piano_Black", "#030303", roughness=0.05, coat=1.0, coat_rough=0.01),
         "inlay_alu": lambda: principled("Inlay_Aluminium_Trigon", "#A8AAAD", metallic=1.0, roughness=0.3, aniso=0.4, tex="brushed"),
-        "headliner": lambda: principled("Headliner_Black", "#1A1A1A", roughness=0.95, sheen=0.5, tex="fabric"),
+        "headliner": lambda: principled("Headliner_Black", "#1A1A1A", roughness=0.95, sheen=0.15, tex="fabric"),
         "carpet": lambda: principled("Carpet_Black", "#141414", roughness=1.0, tex="carpet"),
         "screen_mmi": lambda: principled("Screen_MMI_Nav", "#000000", roughness=0.05,
                                          emission="#FFFFFF", emission_strength=1.4,

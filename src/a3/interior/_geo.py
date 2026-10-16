@@ -488,3 +488,24 @@ def cleanup_temp():
     col = bpy.data.collections.get("_tmp_cutters")
     if col is not None and not col.objects:
         bpy.data.collections.remove(col)
+
+
+def keep_inside(ctx, ob, clear):
+    """Push the vertices of ``ob`` that come within ``clear`` of the body
+    skin (or poke through it) back inside along the skin normal.  v0.4: the
+    wide D-pillar trim and the boot side trims stuck out through the tailgate
+    and the wrapped rear glass at its corners."""
+    ref = ctx.objects.get("skin_ref")
+    if ref is None or ob is None:
+        return
+    bvh = BVHTree.FromObject(ref, bpy.context.evaluated_depsgraph_get())
+    mw, mi = ob.matrix_world, ob.matrix_world.inverted()
+    for v in ob.data.vertices:
+        p = mw @ v.co
+        loc, n, _, _ = bvh.find_nearest(p)
+        if loc is None:
+            continue
+        # skin normals point outwards: positive = outside the skin
+        if (p - loc).dot(n) > -clear:
+            v.co = mi @ (loc - n * clear)
+    ob.data.update()

@@ -264,10 +264,23 @@ class EndCap:
         t = np.linspace(0.0, 1.0, count + 1)[1:]
         r = 1.0 - t ** power               # dense near the split loop
         r = np.concatenate([r[:-1], [0.0]])
+        # "rows": the rings shrink onto a vertical centre segment [z_a, z_b]
+        # instead of a point, so inside that band every loop point runs to
+        # the centre line at its own height and the grid lines follow the
+        # horizontal creases of the tail (tailgate band, lamp line, step under
+        # the glass).  Rings scaled about a point crossed them diagonally and
+        # left a saw-tooth along every crease (v0.3 rear).  Above and below
+        # the band the rows still converge (to the segment ends): shrinking
+        # the flat floor / roof edges at constant height would fold them onto
+        # themselves.
+        zc = self.zc
+        if self.cfg.get("mesh") == "rows":
+            za, zb = (v * 1e-3 for v in self.cfg["rows_z"])
+            zc = np.clip(self.loop[:, 1], za, zb)
         rows = []
         for rk in r:
             y = rk * self.loop[:, 0]
-            z = self.zc + rk * (self.loop[:, 1] - self.zc)
+            z = zc + rk * (self.loop[:, 1] - zc)
             x = self.x_at(y, z)
             rows.append(np.stack([x, y, z], 1))
         return np.array(rows)

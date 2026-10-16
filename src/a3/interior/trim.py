@@ -210,8 +210,9 @@ def _pillars(ctx, L):
         # D pillar: wide trim from the quarter-light rear edge back to the tailgate
         dl = np.array(L.dlo_rear)
         pts = [(x - 0.060, 0, z) for x, z in dl if z < 1.30]
-        _pillar(ctx, f"Trim_DPillar_{nm}", _on_skin(P, pts, s, 0.055),
-                np.linspace(0.12, 0.09, len(pts)), 0.020, hl, (0, s, 0.1))
+        dp = _pillar(ctx, f"Trim_DPillar_{nm}", _on_skin(P, pts, s, 0.055),
+                     np.linspace(0.12, 0.09, len(pts)), 0.020, hl, (0, s, 0.1))
+        g.keep_inside(ctx, dp, 0.008)
         # rear quarter trim below the belt (beside the rear backrest / luggage area)
         xs = np.linspace(L.quarter_x[0], L.quarter_x[1], 26)
         rows = []

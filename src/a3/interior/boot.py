@@ -33,7 +33,7 @@ def build(ctx):
                                   (x, s * (Y_HALF - hump), Z_FLOOR + 0.05),
                                   (x, s * (Y_HALF - hump * 0.9), Z_FLOOR + 0.28),
                                   (x, s * (Y_HALF + 0.06), Z_FLOOR + 0.42)]))
-        g.loft(f"Boot_SideTrim_{sfx}", secs, COL, carpet, flip=s < 0)
+        g.keep_inside(ctx, g.loft(f"Boot_SideTrim_{sfx}", secs, COL, carpet, flip=s < 0), 0.010)
         for k, x in enumerate((X0 - 0.05, X1 + 0.06)):
             g.lathe(f"Boot_TieDown_{sfx}{k}", [(0.004, 0), (0.016, 0), (0.016, 0.004), (0.004, 0.004)],
                     origin=(x, s * (Y_HALF - 0.01), Z_FLOOR + 0.04), axis=(0, -s, 0), segments=16,

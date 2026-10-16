@@ -71,7 +71,7 @@ def render_mask(cfg, W, H):
     scn.render.resolution_x, scn.render.resolution_y = W, H
     scn.render.resolution_percentage = 100
     tmp = os.path.join(ROOT, "out", "_sil_tmp.png")
-    scn.render.filepath = tmp
+    scn.render.filepath = os.path.abspath(tmp)
     bpy.ops.render.render(write_still=True)
     a = np.asarray(Image.open(tmp).convert("RGBA"))[..., 3] > 128
     return a

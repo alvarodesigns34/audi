@@ -655,29 +655,40 @@ def _k7_edge(bl=None):
     return np.stack([xs, w, z], 1)
 
 
-RADIAL_Z = 0.90      # axis (x, 0, RADIAL_Z) of the radial parameterisation of the rear
-RADIAL_R = 0.60      # m per radian: scales theta to comparable lengths
+RADIAL_Z = 0.90      # height of the chart origin (kept for callers)
+RADIAL_R = 0.60      # m per radian: scales the angles to comparable lengths
+# v0.4: the chart rays start from a point inside the rear cabin instead of an
+# x-axis.  Rays in x = const planes (v0.3) graze the rear face of the tailgate,
+# which is almost normal to x: the glass bottom edge and the tailgate shut
+# lines came out ~10 mm wavy.  From inside, every ray meets the upper rear
+# body (glass, D-pillars, tailgate face) nearly along its normal, once.
+CHART_O = (-2.55, 0.0, RADIAL_Z)
 
 
 def to_xth(P):
-    """3D points -> (x, theta*R) of the radial parameterisation used for the
-    wrap-around rear glass: theta = atan2(z - RADIAL_Z, y) in the section
-    plane x = const.  A ray from the axis in the section plane meets the skin
-    once, so (x, theta) is a 1:1 chart of the rear upper body, unlike a
-    projection from an eye point, which grazes the D-pillars."""
-    P = np.asarray(P, float)
-    th = np.arctan2(P[:, 2] - RADIAL_Z, P[:, 1])
-    return np.stack([P[:, 0], th * RADIAL_R], 1)
+    """3D points -> (azimuth*R, elevation*R) of the spherical chart of the
+    rear upper body seen from CHART_O (azimuth 0 straight back, + to the
+    left).  Mirroring the car (y -> -y) negates the first coordinate."""
+    d = np.asarray(P, float) - np.asarray(CHART_O)
+    az = np.arctan2(d[:, 1], -d[:, 0])
+    el = np.arctan2(d[:, 2], np.hypot(d[:, 0], d[:, 1]))
+    return np.stack([az * RADIAL_R, el * RADIAL_R], 1)
+
+
+def chart_dir(Q):
+    """(azimuth*R, elevation*R) -> unit ray directions."""
+    Q = np.asarray(Q, float) / RADIAL_R
+    az, el = Q[:, 0], Q[:, 1]
+    return np.stack([-np.cos(el) * np.cos(az), np.cos(el) * np.sin(az), np.sin(el)], 1)
 
 
 def radial_cast(surf, Q):
-    """(x, theta*R) -> skin points and normals (missing hits dropped)."""
+    """Chart points -> skin points and normals (missing hits dropped)."""
     from mathutils import Vector
     P, N = [], []
-    for x, t in np.asarray(Q, float):
-        th = t / RADIAL_R
-        d = Vector((0.0, np.cos(th), np.sin(th)))
-        hit = surf.bvh.ray_cast(Vector((x, 0.0, RADIAL_Z)), d, 5.0)
+    o = Vector(CHART_O)
+    for d in chart_dir(Q):
+        hit = surf.bvh.ray_cast(o, Vector(d), 5.0)
         if hit[0] is not None:
             P.append(np.array(hit[0][:]))
             N.append(np.array(hit[1][:]))
@@ -685,7 +696,7 @@ def radial_cast(surf, Q):
 
 
 def rear_glass_param(inset=None, n=360):
-    """Closed rear-glass outline in the (x, theta*R) chart, inset by `inset`
+    """Closed rear-glass outline in the spherical chart (to_xth), inset by `inset`
     mm (positive = smaller)."""
     from ..core.curves import catmull_rom, resample
     inset = REAR_GLASS_INSET if inset is None else inset
@@ -695,7 +706,7 @@ def rear_glass_param(inset=None, n=360):
     half = np.vstack([top[::-1], edge[1:-1], bottom])       # centre top -> corners -> centre bottom
     Ql = to_xth(half)
     Qr = Ql[::-1].copy()
-    Qr[:, 1] = np.pi * RADIAL_R - Qr[:, 1]                  # mirror: theta -> pi - theta
+    Qr[:, 0] = -Qr[:, 0]                                    # mirror: azimuth -> -azimuth
     loop = np.vstack([Ql[:-1], Qr[:-1]])
     loop = resample(catmull_rom(loop, 4, closed=True), n, closed=True)
     if inset:
@@ -713,7 +724,7 @@ def rear_glass_outline(surf, inset=None, n=360):
 
 def radial_slab_cutter(name, surf, loop_q, col, material=None, delta=0.006, nr=40):
     """Closed slab (+-delta along the skin normal) covering the region of the
-    skin inside a closed loop of the (x, theta*R) chart."""
+    skin inside a closed loop of the spherical chart (to_xth)."""
     import bmesh
     loop_q = np.asarray(loop_q, float)
     c = loop_q.mean(0)
@@ -727,8 +738,7 @@ def radial_slab_cutter(name, surf, loop_q, col, material=None, delta=0.006, nr=4
             raise RuntimeError(f"{name}: radial cast missed the skin")
         G[i], Nn[i] = P, N
     # outward normals (away from the axis)
-    ax = np.stack([G[..., 0], np.zeros_like(G[..., 0]), np.full_like(G[..., 0], RADIAL_Z)], -1)
-    flip = ((G - ax) * Nn).sum(-1) < 0
+    flip = ((G - np.asarray(CHART_O)) * Nn).sum(-1) < 0
     Nn[flip] *= -1
     for _ in range(2):
         Nn[1:-1] = (Nn[:-2] + 2 * Nn[1:-1] + Nn[2:]) / 4
